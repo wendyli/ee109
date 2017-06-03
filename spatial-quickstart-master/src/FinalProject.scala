@@ -36,16 +36,18 @@ object FinalProject extends SpatialApp {
       */
 
       Stream (*) { _=>
-      
         // Generate the pixel output 
         Foreach(0 until 3) { i => 
           Foreach(0 until dwell) { _ =>
             Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
+              val cir0 = cir(0)
+              val cir1 = cir(1)
+              val cir2 = cir(2)
 
-              val pixel1 = mux((r - cir(0).x)*(r -cir(0).x) + (c - cir(0).y)*(c -cir(0).y) < cir(0).rad * cir(0).rad, Pixel16(0,63,0), Pixel16(0,0,0))
-              val pixel2 = mux((r - cir(1).x)*(r -cir(1).x) + (c - cir(1).y)*(c -cir(1).y) < cir(1).rad * cir(1).rad, Pixel16(31,0,0), Pixel16(0,0,0))
-              val pixel3 = mux((r - cir(2).x)*(r -cir(2).x) + (c - cir(2).y)*(c -cir(2).y) < cir(2).rad * cir(2).rad, Pixel16(0,0,31), Pixel16(0,0,0))
-              
+              val pixel1 = mux((r - cir0.x)*(r -cir0.x) + (c - cir0.y)*(c -cir0.y) < cir0.rad * cir0.rad, Pixel16(0,63,0), Pixel16(0,0,0))
+              val pixel2 = mux((r - cir1.x)*(r -cir1.x) + (c - cir1.y)*(c -cir1.y) < cir1.rad * cir1.rad, Pixel16(31,0,0), Pixel16(0,0,0))
+              val pixel3 = mux((r - cir2.x)*(r -cir2.x) + (c - cir2.y)*(c -cir2.y) < cir2.rad * cir2.rad, Pixel16(0,0,31), Pixel16(0,0,0))
+            
               val pixel = mux(i == 0, pixel1, mux( i == 1, pixel2, mux( i == 2, pixel3, Pixel16(0,0,0))))
               imgOut(r, c) = pixel
 
