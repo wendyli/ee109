@@ -20,16 +20,18 @@ object FinalProject extends SpatialApp {
     val d = args(0).to[Int]
     setArg(dwell, d)
 
+    
+
     Accel (*) {
+
+      val cir0 = Circle(100,100, 10, 0, 0)
+      val cir1 = Circle(40,60, 5, 0, 0)
+      val cir2 = Circle(150,150, 15, 0, 0)
 
       Foreach(0 until 3) { i => 
         Foreach(0 until dwell) { _ =>
           Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
             
-            val cir0 = Circle(100,100, 10, 0, 0)
-            val cir1 = Circle(40,60, 5, 0, 0)
-            val cir2 = Circle(150,150, 15, 0, 0)
-
             val pixel1 = mux((r - cir0.x)*(r -cir0.x) + (c - cir0.y)*(c -cir0.y) < cir0.rad * cir0.rad, Pixel16(0,63,0), Pixel16(0,0,0))
             val pixel2 = mux((r - cir1.x)*(r -cir1.x) + (c - cir1.y)*(c -cir1.y) < cir1.rad * cir1.rad, Pixel16(31,0,0), Pixel16(0,0,0))
             val pixel3 = mux((r - cir2.x)*(r -cir2.x) + (c - cir2.y)*(c -cir2.y) < cir2.rad * cir2.rad, Pixel16(0,0,31), Pixel16(0,0,0))
