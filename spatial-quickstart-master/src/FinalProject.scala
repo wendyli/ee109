@@ -15,12 +15,17 @@ object FinalProject extends SpatialApp {
 
   @virtualize
   def convolveVideoStream(): Unit = {
-    val imgOut = BufferedOut[Pixel16](target.VGA)
+
+    //val imgOut = BufferedOut[Pixel16](target.VGA)
     val dwell = ArgIn[Int]
     val d = args(0).to[Int]
     setArg(dwell, d)
 
-    Accel {
+    val leds = target.LEDR
+    val ledOutput = StreamOut[Int](leds)
+    val cirx = Reg[Int](0)
+
+    Accel(*){
 
       val cir = SRAM[Circle](3)
       // Fill array with circle values
@@ -29,19 +34,21 @@ object FinalProject extends SpatialApp {
       }
 
       // Generate circles
-      Foreach(0 until 30000) { _ => 
+      Stream(*){ 
         Foreach(0 until dwell) { _ =>
           Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
-            
+        
             val pixel = mux((r.to[Int] - cir(0).x.to[Int])*(r.to[Int] -cir(0).x.to[Int]) + (c.to[Int] - cir(0).y.to[Int])*(c.to[Int] -cir(0).y.to[Int]) < cir(0).rad.to[Int] * cir(0).rad.to[Int], Pixel16(0,63,0), Pixel16(0,0,0))
-            imgOut(r, c) = pixel
+
+            cirx := cir(0).x.to[Int]
+            ledOutput := cirx.value()
 
           }
         }
-      }
+      }// end of stream 
 
 
-    }
+    }// end of accel 
   }
 
   @virtualize
