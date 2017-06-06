@@ -50,23 +50,24 @@ object FinalProject extends SpatialApp {
         
           if(state == 0.to[Int]){ // Set new velocities
             
-            Sequential{
-              cirVelX(0) = mux( cirX(0) + cirRad(0) >= Cmax || cirX(0) - cirRad(0) <= 0.to[Int], 0 - cirVelX(0), cirVelX(0))
-              cirVelY(0) = mux( cirY(0) + cirRad(0) >= Rmax || cirY(0) - cirRad(0) <= 0.to[Int], 0 - cirVelY(0), cirVelY(0))
+            Sequential.Foreach(0 until cirCount){ i =>
+              
+              cirVelX(i) = mux( cirX(i) + cirRad(i) >= Cmax || cirX(i) - cirRad(i) <= 0.to[Int], 0 - cirVelX(i), cirVelX(i))
+              cirVelY(i) = mux( cirY(i) + cirRad(i) >= Rmax || cirY(i) - cirRad(i) <= 0.to[Int], 0 - cirVelY(i), cirVelY(i))
+            
             }
 
-          }else if(state == 1.to[Int]){  // Calculate new positions
+          }else if(state == 1.to[Int]){ // Calculate new positions
 
-            Sequential{
+            Sequential.Foreach(0 until cirCount){ i =>
 
-              cirX(0) = mux( cirX(0) + cirVelX(0) > Cmax -10, Cmax - 10, 
-                        mux( cirX(0) + cirVelX(0) <= 10, 10, 
-                             cirX(0) + cirVelX(0)))
+              cirX(0) = mux( cirX(i) + cirVelX(i) > Cmax - 10, Cmax - 10, 
+                        mux( cirX(i) + cirVelX(i) <= 10, 10, 
+                             cirX(i) + cirVelX(i)))
 
-              cirY(0) = mux( cirY(0) + cirVelY(0) > Rmax -10, Rmax - 10, 
-                        mux( cirY(0) + cirVelY(0) <= 10, 10,     
-                             cirY(0) + cirVelY(0)))
-
+              cirY(0) = mux( cirY(i) + cirVelY(i) > Rmax - 10, Rmax - 10, 
+                        mux( cirY(i) + cirVelY(i) <= 10, 10,     
+                             cirY(i) + cirVelY(i)))
             }
           
           }else if(state == 2.to[Int]){  // Draw circle 
@@ -75,7 +76,10 @@ object FinalProject extends SpatialApp {
               Foreach(0 until dwell) { _ =>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
                   //val pixel = mux((r.to[Int] - cirX(0).to[Int])*(r.to[Int] -cirX(0).to[Int]) + (c.to[Int] - cirY(0).to[Int])*(c.to[Int] -cirY(0).to[Int]) < cirRad(0).to[Int] * cirRad(0).to[Int], Pixel16(0,63,0), Pixel16(0,0,0))
-                  val pixel = mux( (r > cirY(0)) && (r < cirY(0) + 10) && (c > cirX(0)) && (c < cirX(0) + 10), Pixel16(0,63,0), Pixel16(0,0,0))
+                  val pixel1 = mux((r > cirY(0)) && (r < cirY(0) + 10) && (c > cirX(0)) && (c < cirX(0) + 10), Pixel16(0,63,0), Pixel16(0,0,0))
+                  val pixel2 = mux((r > cirY(1)) && (r < cirY(1) + 10) && (c > cirX(1)) && (c < cirX(1) + 10), Pixel16(31,0,0), Pixel16(0,0,0)) 
+                  val pixel3 = mux((r > cirY(2)) && (r < cirY(2) + 10) && (c > cirX(2)) && (c < cirX(2) + 10), Pixel16(0,0,31), Pixel16(0,0,0))
+                  val pixel  = Pixel16(pixel1.b|pixel2.b|pixel3.b, pixel1.g|pixel2.g|pixel3.g, pixel1.r|pixel2.r|pixel3.r)  
                   imgOut(r, c) = pixel
 
                 }
@@ -86,7 +90,6 @@ object FinalProject extends SpatialApp {
         }{state => mux(state == 2.to[Int], 0.to[Int], state + 1)}
 
       }// end of stream(*)
-
     }// end of accel 
   }
 
