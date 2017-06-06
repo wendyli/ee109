@@ -28,6 +28,7 @@ object FinalProject extends SpatialApp {
       val cirRad = SRAM[Int](3)
       val cirVelX = SRAM[Int](3)
       val cirVelY = SRAM[Int](3)
+      val state = SRAM[Int](1)
 
       // Fill array with circle values
       Foreach(0 until 3){ i =>
@@ -44,36 +45,55 @@ object FinalProject extends SpatialApp {
 
         //Get new coordinates 
         Sequential{
-        
-          // Calculate new velocity vectors
-          val RCollide = mux(cirX(0) + cirRad(0) > Cmax, true, false)
-          val LCollide = mux(cirX(0) - cirRad(0) < Cmax, true, false)
-          val TCollide = mux(cirY(0) + cirRad(0) > Rmax, true, false)
-          val BCollide = mux(cirY(0) - cirRad(0) < Rmax, true, false)
 
-          // Set new velocities
-          cirVelX(0) = mux(RCollide || LCollide, 0 - cirVelX(0), cirVelX(0))
-          cirVelY(0) = mux(TCollide || BCollide, 0 - cirVelY(0), cirVelY(0))
-        }
+          if(state(0) == 1.to[Int]){ // Set new velocities
+            
+            Sequential{
+              val RCollide = mux(cirX(0) + cirRad(0) > Cmax, 1.to[Int], 0.to[Int])
+              val LCollide = mux(cirX(0) - cirRad(0) < Cmax, 1.to[Int], 0.to[Int])
+              val TCollide = mux(cirY(0) + cirRad(0) > Rmax, 1.to[Int], 0.to[Int])
+              val BCollide = mux(cirY(0) - cirRad(0) < Rmax, 1.to[Int], 0.to[Int])
 
-        Sequential{
-          // Calculate new positions
-          cirX(0) = mux( cirX(0) + cirVelX(0) > Cmax -10, Cmax - 10, cirX(0) + cirVelX(0))
-          cirY(0) = mux( cirY(0) + cirVelY(0) > Rmax -10, Rmax - 10, cirY(0) + cirVelY(0))
+              cirVelX(0) = mux( RCollide == 1.to[Int]|| LCollide == 1.to[Int], 0 - cirVelX(0), cirVelX(0))
+              cirVelY(0) = mux( TCollide == 1.to[Int]|| BCollide == 1.to[Int], 0 - cirVelY(0), cirVelY(0))
 
-          // Draw circle 
-          Foreach(0 until dwell) { _ =>
-            Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
-              //val pixel = mux((r.to[Int] - cirX(0).to[Int])*(r.to[Int] -cirX(0).to[Int]) + (c.to[Int] - cirY(0).to[Int])*(c.to[Int] -cirY(0).to[Int]) < cirRad(0).to[Int] * cirRad(0).to[Int], Pixel16(0,63,0), Pixel16(0,0,0))
-              val pixel = mux( (r > cirY(0)) && (r < cirY(0) + 10) && (c > cirX(0)) && (c < cirX(0) + 10), Pixel16(0,63,0), Pixel16(0,0,0))
-              imgOut(r, c) = pixel
-
+              state(0) = 2.to[Int]
             }
-          } // end of dwell
+
+
+          }else if(state(0) == 2.to[Int]){
+
+            Sequential{
+              // Calculate new positions
+              cirX(0) = mux( cirX(0) + cirVelX(0) > Cmax -10, Cmax - 10, cirX(0) + cirVelX(0))
+              cirY(0) = mux( cirY(0) + cirVelY(0) > Rmax -10, Rmax - 10, cirY(0) + cirVelY(0))
+
+              state(0) = 3.to[Int]
+            }
+
+          
+          }else if(state(0) == 3.to[Int]){
+            
+            Sequential{
+              // Draw circle 
+              Sequential.Foreach(0 until dwell) { _ =>
+                Sequential.Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
+                  //val pixel = mux((r.to[Int] - cirX(0).to[Int])*(r.to[Int] -cirX(0).to[Int]) + (c.to[Int] - cirY(0).to[Int])*(c.to[Int] -cirY(0).to[Int]) < cirRad(0).to[Int] * cirRad(0).to[Int], Pixel16(0,63,0), Pixel16(0,0,0))
+                  val pixel = mux( (r > cirY(0)) && (r < cirY(0) + 10) && (c > cirX(0)) && (c < cirX(0) + 10), Pixel16(0,63,0), Pixel16(0,0,0))
+                  imgOut(r, c) = pixel
+
+                }
+              } 
+
+              state(0) = 1.to[Int]
+            }
+
+          }
 
         } //end of sequential 
 
       }// end of stream(*)
+
     }// end of accel 
   }
 
