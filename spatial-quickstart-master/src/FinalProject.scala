@@ -9,10 +9,13 @@ object FinalProject extends SpatialApp {
   val Cmax = 320
   val Rmax = 240
   val BallCount = 10
+  val cirCount = 3
 
+  type Int16 = FixPt[TRUE,_16,_0]
+  type UInt8 = FixPt[FALSE,_8,_0]
+  type UInt5 = FixPt[FALSE,_5,_0]
+  type UInt6 = FixPt[FALSE,_6,_0]
   @struct case class Pixel16(b: UInt5, g: UInt6, r: UInt5)
-  
-  @struct case class Circle(x: Int, y: Int, rad: Int, velx: Int, vely: Int)
 
   @virtualize
   def convolveVideoStream(): Unit = {
@@ -30,7 +33,7 @@ object FinalProject extends SpatialApp {
       val cirVelY = SRAM[Int](3)
 
       // Fill array with circle values
-      Foreach(0 until 3){ i =>
+      Foreach(0 until cirCount){ i =>
 
           cirX(i)    = 10.to[Int]
           cirY(i)    = 10.to[Int]
@@ -44,14 +47,13 @@ object FinalProject extends SpatialApp {
 
         FSM[Int]{state => state < 3}{state =>
         
-
           if(state == 0.to[Int]){ // Set new velocities
             
             Sequential{
               val RCollide = mux(cirX(0) + cirRad(0) > Cmax, 1.to[Int], 0.to[Int])
-              val LCollide = mux(cirX(0) - cirRad(0) < Cmax, 1.to[Int], 0.to[Int])
+              val LCollide = mux(cirX(0) - cirRad(0) < 0,    1.to[Int], 0.to[Int])
               val TCollide = mux(cirY(0) + cirRad(0) > Rmax, 1.to[Int], 0.to[Int])
-              val BCollide = mux(cirY(0) - cirRad(0) < Rmax, 1.to[Int], 0.to[Int])
+              val BCollide = mux(cirY(0) - cirRad(0) < 0,    1.to[Int], 0.to[Int])
 
               cirVelX(0) = mux( RCollide == 1.to[Int]|| LCollide == 1.to[Int], 0 - cirVelX(0), cirVelX(0))
               cirVelY(0) = mux( TCollide == 1.to[Int]|| BCollide == 1.to[Int], 0 - cirVelY(0), cirVelY(0))
@@ -64,7 +66,7 @@ object FinalProject extends SpatialApp {
               val newX = cirX(0) + cirVelX(0)
               val newY = cirY(0) + cirVelY(0)
 
-              cirX(0) = mux( newX > Cmax -10, Cmax - 10, newX)
+              cirX(0) = mux( newX > Cmax -10, Cmax - 10, newX )
               cirY(0) = mux( newY > Rmax -10, Rmax - 10, newY )
             }
           
@@ -79,13 +81,10 @@ object FinalProject extends SpatialApp {
 
                 }
               } 
-
             }
-
           }
 
-
-        }{state => state + 1}
+        }{state => mux(state == 2.to[Int], 0.to[Int], state + 1)}
 
       }// end of stream(*)
 
