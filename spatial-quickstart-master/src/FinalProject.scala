@@ -13,9 +13,9 @@ object FinalProject extends SpatialApp {
 
   type Int16 = FixPt[TRUE,_16,_0]
   type UInt8 = FixPt[FALSE,_8,_0]
+  type UInt16 = FixPt[FALSE,_16,_0]
   type UInt5 = FixPt[FALSE,_5,_0]
   type UInt6 = FixPt[FALSE,_6,_0]
-
   @struct case class Pixel16(b: UInt5, g: UInt6, r: UInt5)
 
   @virtualize
@@ -36,11 +36,11 @@ object FinalProject extends SpatialApp {
       // Fill array with circle values
       Foreach(0 until cirCount){ i =>
 
-          cirX(i)    = 10.to[Int]
-          cirY(i)    = 10.to[Int]
+          cirX(i)    = random[UInt16](Cmax).to[Int]
+          cirY(i)    = random[UInt16](Rmax).to[Int]
           cirRad(i)  = 10.to[Int]
-          cirVelX(i) = 1.to[Int]
-          cirVelY(i) = 1.to[Int]
+          cirVelX(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
+          cirVelY(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
       }
 
       // Generate circles
@@ -51,19 +51,22 @@ object FinalProject extends SpatialApp {
           if(state == 0.to[Int]){ // Set new velocities
             
             Sequential{
-              cirVelX(0) = mux( cirX(0) + cirRad(0) > Cmax || cirX(0) - cirRad(0) < 0.to[Int], 0 - cirVelX(0), cirVelX(0))
-              cirVelY(0) = mux( cirY(0) + cirRad(0) > Rmax || cirY(0) - cirRad(0) < 0.to[Int], 0 - cirVelY(0), cirVelY(0))
+              cirVelX(0) = mux( cirX(0) + cirRad(0) >= Cmax || cirX(0) - cirRad(0) <= 0.to[Int], 0 - cirVelX(0), cirVelX(0))
+              cirVelY(0) = mux( cirY(0) + cirRad(0) >= Rmax || cirY(0) - cirRad(0) <= 0.to[Int], 0 - cirVelY(0), cirVelY(0))
             }
 
           }else if(state == 1.to[Int]){  // Calculate new positions
 
             Sequential{
-     
-              val newX = cirX(0) + cirVelX(0)
-              val newY = cirY(0) + cirVelY(0)
 
-              cirX(0) = mux( newX > Cmax -10, Cmax - 10, newX )
-              cirY(0) = mux( newY > Rmax -10, Rmax - 10, newY )
+              cirX(0) = mux( cirX(0) + cirVelX(0) > Cmax -10, Cmax - 10, 
+                        mux( cirX(0) + cirVelX(0) <= 10, 10, 
+                             cirX(0) + cirVelX(0)))
+
+              cirY(0) = mux( cirY(0) + cirVelY(0) > Rmax -10, Rmax - 10, 
+                        mux( cirY(0) + cirVelY(0) <= 10, 10,     
+                             cirY(0) + cirVelY(0)))
+
             }
           
           }else if(state == 2.to[Int]){  // Draw circle 
