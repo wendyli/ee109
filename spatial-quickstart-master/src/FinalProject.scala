@@ -15,6 +15,7 @@ object FinalProject extends SpatialApp {
   type UInt8 = FixPt[FALSE,_8,_0]
   type UInt5 = FixPt[FALSE,_5,_0]
   type UInt6 = FixPt[FALSE,_6,_0]
+
   @struct case class Pixel16(b: UInt5, g: UInt6, r: UInt5)
 
   @virtualize
@@ -50,13 +51,8 @@ object FinalProject extends SpatialApp {
           if(state == 0.to[Int]){ // Set new velocities
             
             Sequential{
-              val RCollide = mux(cirX(0) + cirRad(0) > Cmax, 1.to[Int], 0.to[Int])
-              val LCollide = mux(cirX(0) - cirRad(0) < 0,    1.to[Int], 0.to[Int])
-              val TCollide = mux(cirY(0) + cirRad(0) > Rmax, 1.to[Int], 0.to[Int])
-              val BCollide = mux(cirY(0) - cirRad(0) < 0,    1.to[Int], 0.to[Int])
-
-              cirVelX(0) = mux( RCollide == 1.to[Int]|| LCollide == 1.to[Int], 0 - cirVelX(0), cirVelX(0))
-              cirVelY(0) = mux( TCollide == 1.to[Int]|| BCollide == 1.to[Int], 0 - cirVelY(0), cirVelY(0))
+              cirVelX(0) = mux( cirX(0) + cirRad(0) > Cmax || cirX(0) - cirRad(0) < 0.to[Int], 0 - cirVelX(0), cirVelX(0))
+              cirVelY(0) = mux( cirY(0) + cirRad(0) > Rmax || cirY(0) - cirRad(0) < 0.to[Int], 0 - cirVelY(0), cirVelY(0))
             }
 
           }else if(state == 1.to[Int]){  // Calculate new positions
