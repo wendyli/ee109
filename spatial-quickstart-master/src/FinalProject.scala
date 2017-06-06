@@ -10,8 +10,9 @@ object FinalProject extends SpatialApp {
   val Rmax = 240
   val BallCount = 10
 
+  type UInt8 = FixPt[FALSE,_8,_0]
+
   @struct case class Pixel16(b: UInt5, g: UInt6, r: UInt5)
-  
   @struct case class Circle(x: Int, y: Int, rad: Int, velx: Int, vely: Int)
 
   @virtualize
@@ -32,11 +33,11 @@ object FinalProject extends SpatialApp {
       // Fill array with circle values
       Foreach(0 until 3){ i =>
 
-          cirX(i)    = 10.to[Int]
-          cirY(i)    = 10.to[Int]
+          cirX(i)    = random[UInt8](255).to[Int]
+          cirY(i)    = random[UInt8](Rmax).to[Int]
           cirRad(i)  = 10.to[Int]
-          cirVelX(i) = 1.to[Int]
-          cirVelY(i) = 1.to[Int]
+          cirVelX(i) = random[UInt8](3).to[Int]
+          cirVelY(i) = random[UInt8](3).to[Int]
       }
 
       // Generate circles
@@ -44,6 +45,16 @@ object FinalProject extends SpatialApp {
 
         //Get new coordinates 
         Sequential{
+      
+          // Calculate new velocity vectors
+          val RCollide = mux(cirX(0) + cirRad(0) > Cmax, 1.to[Int], 0.to[Int])
+          val LCollide = mux(cirX(0) - cirRad(0) < Cmax, 1.to[Int], 0.to[Int])
+          val TCollide = mux(cirY(0) + cirRad(0) > Rmax, 1.to[Int], 0.to[Int])
+          val BCollide = mux(cirY(0) - cirRad(0) < Rmax, 1.to[Int], 0.to[Int])
+
+          // Set new velocities
+          cirVelX(0) = mux( RCollide == 1.to[Int]|| LCollide == 1.to[Int], 0 - cirVelX(0), cirVelX(0))
+          cirVelY(0) = mux( TCollide == 1.to[Int]|| BCollide == 1.to[Int], 0 - cirVelY(0), cirVelY(0))
 
           // Calculate new positions
           cirX(0) = mux( cirX(0) + cirVelX(0) > Cmax -10, Cmax - 10, cirX(0) + cirVelX(0))
