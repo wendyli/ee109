@@ -21,7 +21,7 @@ object FinalProject extends SpatialApp {
     val d = args(0).to[Int]
     setArg(dwell, d)
 
-    Accel {
+    Accel{
 
       val cirX = SRAM[Int](3)
       val cirY = SRAM[Int](3)
@@ -37,32 +37,30 @@ object FinalProject extends SpatialApp {
           cirRad(i)  = 10.to[Int]
           cirVelX(i) = 1.to[Int]
           cirVelY(i) = 1.to[Int]
-
       }
 
       // Generate circles
       Stream(*) { _ => 
 
-        //Generate new coordinates 
-        val xval = cirX(0)
-        val yval = cirY(0)
-            
-        cirX(0) = mux( xval + cirVelX(0) > Cmax -10, Cmax - 10, xval + cirVelX(0))
-        cirY(0) = mux( yval + cirVelY(0) > Rmax -10, Rmax - 10 , yval + cirVelY(0))
-        
-        //println("xval is ": xval)
-        //println("yval is ": yval)
-        // Draw circle 
-        Foreach(0 until dwell) { _ =>
-          Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
+        //Get new coordinates 
+        Sequential{
 
-            //val pixel = mux((r.to[Int] - cirX(0).to[Int])*(r.to[Int] -cirX(0).to[Int]) + (c.to[Int] - cirY(0).to[Int])*(c.to[Int] -cirY(0).to[Int]) < cirRad(0).to[Int] * cirRad(0).to[Int], Pixel16(0,63,0), Pixel16(0,0,0))
-            val pixel = mux( (r > cirY(0)) && (r < cirY(0) + 10) && (c > cirX(0)) && (c < cirX(0) + 10), Pixel16(0,63,0), Pixel16(0,0,0))
-            imgOut(r, c) = pixel
+          // Calculate new positions
+          cirX(0) = mux( cirX(0) + cirVelX(0) > Cmax -10, Cmax - 10, cirX(0) + cirVelX(0))
+          cirY(0) = mux( cirY(0) + cirVelY(0) > Rmax -10, Rmax - 10, cirY(0) + cirVelY(0))
 
-          }
-        } // end of dwell
-      
+          // Draw circle 
+          Foreach(0 until dwell) { _ =>
+            Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
+              //val pixel = mux((r.to[Int] - cirX(0).to[Int])*(r.to[Int] -cirX(0).to[Int]) + (c.to[Int] - cirY(0).to[Int])*(c.to[Int] -cirY(0).to[Int]) < cirRad(0).to[Int] * cirRad(0).to[Int], Pixel16(0,63,0), Pixel16(0,0,0))
+              val pixel = mux( (r > cirY(0)) && (r < cirY(0) + 10) && (c > cirX(0)) && (c < cirX(0) + 10), Pixel16(0,63,0), Pixel16(0,0,0))
+              imgOut(r, c) = pixel
+
+            }
+          } // end of dwell
+
+        } //end of sequential 
+
       }// end of stream(*)
     }// end of accel 
   }
