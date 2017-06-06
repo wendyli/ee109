@@ -28,7 +28,6 @@ object FinalProject extends SpatialApp {
       val cirRad = SRAM[Int](3)
       val cirVelX = SRAM[Int](3)
       val cirVelY = SRAM[Int](3)
-      val state = SRAM[Int](1)
 
       // Fill array with circle values
       Foreach(0 until 3){ i =>
@@ -43,61 +42,50 @@ object FinalProject extends SpatialApp {
       // Generate circles
       Stream(*) { _ => 
 
-        //Get new coordinates 
-        Sequential{
+        FSM[Int]{state => state < 3}{state =>
+        
 
-          if(state(0) == 1.to[Int]){ // Set new velocities
-            Sequential{
-              Sequential.Foreach(0 until cirCount){ i =>
-                // Calculate new velocity vectors
-                val RCollide = mux(cirX(i) + cirRad(i) > Cmax, 1.to[Int], 0.to[Int])
-                val LCollide = mux(cirX(i) - cirRad(i) < Cmax, 1.to[Int], 0.to[Int])
-                val TCollide = mux(cirY(i) + cirRad(i) > Rmax, 1.to[Int], 0.to[Int])
-                val BCollide = mux(cirY(i) - cirRad(i) < Rmax, 1.to[Int], 0.to[Int])
-
-                // Set new velocities
-                cirVelX(i) = mux( RCollide == 1.to[Int]|| LCollide == 1.to[Int], 0 - cirVelX(i), cirVelX(i)
-                cirVelY(i) = mux( TCollide == 1.to[Int]|| BCollide == 1.to[Int], 0 - cirVelY(i), cirVelY(i))
-              }
-              state(0) = 2.to[Int]
-            }
-
-          }else if(state(0) == 2.to[Int]){
+          if(state == 0.to[Int]){ // Set new velocities
             
             Sequential{
-              Sequential.Foreach(0 until cirCount){ i =>
-                // Calculate new positions
-                cirX(i) = mux( cirX(i) + cirVelX(i) > Cmax -10, Cmax - 10, cirX(i) + cirVelX(i))
-                cirY(i) = mux( cirY(i) + cirVelY(i) > Rmax -10, Rmax - 10, cirY(i) + cirVelY(i))
-              }
+              val RCollide = mux(cirX(0) + cirRad(0) > Cmax, 1.to[Int], 0.to[Int])
+              val LCollide = mux(cirX(0) - cirRad(0) < Cmax, 1.to[Int], 0.to[Int])
+              val TCollide = mux(cirY(0) + cirRad(0) > Rmax, 1.to[Int], 0.to[Int])
+              val BCollide = mux(cirY(0) - cirRad(0) < Rmax, 1.to[Int], 0.to[Int])
 
-              state(0) = 3.to[Int]
+              cirVelX(0) = mux( RCollide == 1.to[Int]|| LCollide == 1.to[Int], 0 - cirVelX(0), cirVelX(0))
+              cirVelY(0) = mux( TCollide == 1.to[Int]|| BCollide == 1.to[Int], 0 - cirVelY(0), cirVelY(0))
             }
-       
-          }else if(state(0) == 3.to[Int]){
+
+          }else if(state == 1.to[Int]){  // Calculate new positions
+
+            Sequential{
+     
+              val newX = cirX(0) + cirVelX(0)
+              val newY = cirY(0) + cirVelY(0)
+
+              cirX(0) = mux( newX > Cmax -10, Cmax - 10, newX)
+              cirY(0) = mux( newY > Rmax -10, Rmax - 10, newY )
+            }
+          
+          }else if(state == 2.to[Int]){  // Draw circle 
             
             Sequential{
-              // Draw circle 
-              Sequential.Foreach(0 until dwell) { _ =>
-                Sequential.Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
-                  
-                  accum = Reg[Int16](0)
-                  Sequential.Foreach(0 until cirCount){ i =>
-                    val pixel = mux( (r > cirY(0)) && (r < cirY(0) + 10) && (c > cirX(0)) && (c < cirX(0) + 10), 2016.to[Int16], 0.to[Int16])
-                    accum := accum.value | pixel
-                  }
-
-                  imgOut(r, c) = accum.value
+              Foreach(0 until dwell) { _ =>
+                Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
+                  //val pixel = mux((r.to[Int] - cirX(0).to[Int])*(r.to[Int] -cirX(0).to[Int]) + (c.to[Int] - cirY(0).to[Int])*(c.to[Int] -cirY(0).to[Int]) < cirRad(0).to[Int] * cirRad(0).to[Int], Pixel16(0,63,0), Pixel16(0,0,0))
+                  val pixel = mux( (r > cirY(0)) && (r < cirY(0) + 10) && (c > cirX(0)) && (c < cirX(0) + 10), Pixel16(0,63,0), Pixel16(0,0,0))
+                  imgOut(r, c) = pixel
 
                 }
               } 
 
-              state(0) = 1.to[Int]
             }
 
           }
 
-        } //end of outer sequential 
+
+        }{state => state + 1}
 
       }// end of stream(*)
 
