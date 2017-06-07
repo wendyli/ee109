@@ -11,11 +11,14 @@ object FinalProject extends SpatialApp {
   val BallCount = 10
   val cirCount = 3
 
+  type Int64 = FixPt[TRUE,_64,_0]
   type Int16 = FixPt[TRUE,_16,_0]
   type UInt8 = FixPt[FALSE,_8,_0]
   type UInt16 = FixPt[FALSE,_16,_0]
   type UInt5 = FixPt[FALSE,_5,_0]
   type UInt6 = FixPt[FALSE,_6,_0]
+
+
   @struct case class Pixel16(b: UInt5, g: UInt6, r: UInt5)
 
   @virtualize
@@ -41,6 +44,7 @@ object FinalProject extends SpatialApp {
           cirRad(i)  = 10.to[Int]
           cirVelX(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
           cirVelY(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
+
       }
 
       // Generate circles
@@ -74,15 +78,19 @@ object FinalProject extends SpatialApp {
             
             Sequential{
               Foreach(0 until dwell) { _ =>
+
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
-                  //val pixel = mux((r.to[Int] - cirX(0).to[Int])*(r.to[Int] -cirX(0).to[Int]) + (c.to[Int] - cirY(0).to[Int])*(c.to[Int] -cirY(0).to[Int]) < cirRad(0).to[Int] * cirRad(0).to[Int], Pixel16(0,63,0), Pixel16(0,0,0))
-                  val pixel1 = mux((r > cirY(0)) && (r < cirY(0) + 10) && (c > cirX(0)) && (c < cirX(0) + 10), Pixel16(0,63,0), Pixel16(0,0,0))
-                  val pixel2 = mux((r > cirY(1)) && (r < cirY(1) + 10) && (c > cirX(1)) && (c < cirX(1) + 10), Pixel16(31,0,0), Pixel16(0,0,0)) 
-                  val pixel3 = mux((r > cirY(2)) && (r < cirY(2) + 10) && (c > cirX(2)) && (c < cirX(2) + 10), Pixel16(0,0,31), Pixel16(0,0,0))
-                  val pixel  = Pixel16(pixel1.b|pixel2.b|pixel3.b, pixel1.g|pixel2.g|pixel3.g, pixel1.r|pixel2.r|pixel3.r)  
-                  imgOut(r, c) = pixel
+                  val accum = Reg[UInt6](0)
+
+                  Foreach(0 until cirCount){ i =>
+                    val g_pix = mux((r.to[Int64] - cirX(i).to[Int64])*(r.to[Int64] -cirX(i).to[Int64]) + (c.to[Int64] - cirY(i).to[Int64])*(c.to[Int64] -cirY(i).to[Int64]) < cirRad(i).to[Int64] * cirRad(imgOut).to[Int64], 63.to[UInt6], 0)
+                    accum := g_pix | accum.value
+                  }
+
+                  imgOut(r, c) = Pixel16(0, accum.value, 0)
 
                 }
+
               } 
             }
           }
