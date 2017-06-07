@@ -72,7 +72,6 @@ object FinalProject extends SpatialApp {
                         mux( cirY(0) + cirVelY(0) <= 10, 10,     
                              cirY(0) + cirVelY(0)))
 
-
               cirX(1) = mux( cirX(1) + cirVelX(1) > Cmax -10, Cmax - 10, 
                         mux( cirX(1) + cirVelX(1) <= 10, 10, 
                              cirX(1) + cirVelX(1)))
