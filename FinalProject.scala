@@ -2,13 +2,12 @@ import spatial._
 import org.virtualized._
 import spatial.targets.DE1
 
-object Circle extends SpatialApp {
+object FinalProject extends SpatialApp {
   import IR._
 
   override val target = DE1
   val Cmax = 320
   val Rmax = 240
-  val BallCount = 10
   val cirCount = 3
   val cirRad = 10 
 
@@ -30,16 +29,20 @@ object Circle extends SpatialApp {
 
     Accel{
 
-      val cirX = RegFile[Int](3)
-      val cirY = RegFile[Int](3)
-      val cirVelX = RegFile[Int](3)
-      val cirVelY = RegFile[Int](3)
+      val cirX = RegFile[Int](cirCount)
+      val cirY = RegFile[Int](cirCount)
+      val cirVelX = RegFile[Int](cirCount)
+      val cirVelY = RegFile[Int](cirCount)
+      val collisionType = RegFile[Int](cirCount) // 1 = ball to ball collision , 2 = border collision , 3 = no collision
+      val ballCollide = RegFile[Int](cirCount) // -1 no ball colliding, j = ball collided with
+
 
       // Fill array with circle values
       Foreach(0 until cirCount){ i =>
-
-          cirX(i)    = random[UInt16](Cmax).to[Int]
-          cirY(i)    = random[UInt16](Rmax).to[Int]
+          val X = random[UInt16](Cmax).to[Int]
+          val Y = random[UInt16](Rmax).to[Int]
+          cirX(i)    = mux(X < 0, 0.to[Int], X)
+          cirY(i)    = mux(Y < 0, 0.to[Int], Y)
           cirVelX(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
           cirVelY(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
       }
@@ -49,16 +52,56 @@ object Circle extends SpatialApp {
 
         FSM[Int]{state => state < 3}{state =>
         
-          if(state == 0.to[Int]){ // Set new velocities
+          if(state == 0.to[Int]){ // Determine collision type
             
             Sequential{
-              Sequential.Foreach(0 until cirCount){ i => 
-                cirVelX(i) = mux( cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int], 0 - cirVelX(i), cirVelX(i))
-                cirVelY(i) = mux( cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 0 - cirVelY(i), cirVelY(i))
+              val borderCollision = RegFile[Int](cirCount)
+              val ballCollision = RegFile[Int](cirCount)
+
+              Foreach(0 until cirCount){ i =>  // detect border collision 
+                borderCollision(i) = mux(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int] || cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 1.to[Int], 0.to[Int])
+                ballCollide(i) = i.to[Int]
+                ballCollision(i) = 0.to[Int]
+              }
+
+              Foreach(0 until cirCount){ i =>  // detect ball to ball collision
+                Foreach(0 until cirCount){ j =>
+                  val sqrRad = 4*cirRad*cirRad
+                  val distSqr = (cirX(i) - cirX(j)) * (cirX(i) - cirX(j)) + (cirY(i) - cirY(j))*(cirY(i) - cirY(j))
+                  ballCollision(i) = mux(distSqr <= sqrRad && (i != j), 1.to[Int], ballCollision(i))
+                  ballCollide(i) = mux(distSqr <= sqrRad && (i != j), j.to[Int], ballCollide(i))
+                }
+              }
+
+             Foreach(0 until cirCount){ i => // determine collision type
+                collisionType(i) = mux(borderCollision(i) == 1, 1.to[Int], 
+                                   mux(ballCollision(i) == 1, 2.to[Int], 
+                                   0.to[Int]))
               }
             }
 
-          }else if(state == 1.to[Int]){  // Calculate new positions
+          }else if(state == 1.to[Int]){ // Update velocities 
+            // 1 = border collision , 2 = ball to ball collision , 3 = no collision
+            Sequential{
+              Sequential.Foreach(0 until cirCount){ i => 
+                  
+                  val ball2 = ballCollide(i)
+                  val x2 = cirX(ball2)
+                  val y2 = cirY(ball2)
+                  val x1 = cirX(i)
+                  val y1 = cirY(i)
+
+                  cirVelX(i) = mux(collisionType(i) == 1 &&(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int]),0 - cirVelX(i), 
+                               mux(collisionType(i) == 2 &&((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0)),0 - cirVelX(i),
+                               cirVelX(i)))
+
+                  cirVelY(i) = mux(collisionType(i) == 1 && (cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int]), 0 - cirVelY(i), 
+                               mux(collisionType(i) == 2 && ((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0)), 0 - cirVelY(i),
+                               cirVelY(i)))
+              }
+            }
+          
+          }else if(state == 2.to[Int]){  // Calculate new positions
 
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
@@ -72,12 +115,12 @@ object Circle extends SpatialApp {
               }
             }
           
-          }else if(state == 2.to[Int]){  // Draw circle 
+          }else if(state == 3.to[Int]){  // Draw circle 
             
             Sequential{
-              Foreach(0 until dwell) { _ =>
+              Foreach(0 until dwell){ _ =>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
-
+                  
                   val pixel1 = mux((r.to[Int64] - cirY(0).to[Int64])*(r.to[Int64] -cirY(0).to[Int64]) + (c.to[Int64] - cirX(0).to[Int64])*(c.to[Int64] -cirX(0).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
                   val pixel2 = mux((r.to[Int64] - cirY(1).to[Int64])*(r.to[Int64] -cirY(1).to[Int64]) + (c.to[Int64] - cirX(1).to[Int64])*(c.to[Int64] -cirX(1).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,0,31), Pixel16(0,0,0))
                   val pixel3 = mux((r.to[Int64] - cirY(2).to[Int64])*(r.to[Int64] -cirY(2).to[Int64]) + (c.to[Int64] - cirX(2).to[Int64])*(c.to[Int64] -cirX(2).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(31,0,0), Pixel16(0,0,0))
@@ -89,7 +132,7 @@ object Circle extends SpatialApp {
             }
           }
 
-        }{state => mux(state == 2.to[Int], 0.to[Int], state + 1)}
+        }{state => mux(state == 3.to[Int], 0.to[Int], state + 1)}
 
       }// end of stream(*)
     }// end of accel 
