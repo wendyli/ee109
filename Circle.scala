@@ -8,7 +8,7 @@ object Circle extends SpatialApp {
   override val target = DE1
   val Cmax = 320
   val Rmax = 240
-  val cirCount = 3
+  val cirCount = 5
   val cirRad = 10 
 
   type Int64 = FixPt[TRUE,_64,_0]
@@ -108,7 +108,10 @@ object Circle extends SpatialApp {
                   val pixel1 = mux((r.to[Int64] - cirY(0).to[Int64])*(r.to[Int64] -cirY(0).to[Int64]) + (c.to[Int64] - cirX(0).to[Int64])*(c.to[Int64] -cirX(0).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
                   val pixel2 = mux((r.to[Int64] - cirY(1).to[Int64])*(r.to[Int64] -cirY(1).to[Int64]) + (c.to[Int64] - cirX(1).to[Int64])*(c.to[Int64] -cirX(1).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,0,31), Pixel16(0,0,0))
                   val pixel3 = mux((r.to[Int64] - cirY(2).to[Int64])*(r.to[Int64] -cirY(2).to[Int64]) + (c.to[Int64] - cirX(2).to[Int64])*(c.to[Int64] -cirX(2).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(31,0,0), Pixel16(0,0,0))
-                  val pixel = Pixel16(pixel1.b|pixel2.b|pixel3.b, pixel1.g| pixel2.g|pixel3.g, pixel1.r| pixel2.r|pixel3.r)
+                  val pixel4 = mux((r.to[Int64] - cirY(3).to[Int64])*(r.to[Int64] -cirY(3).to[Int64]) + (c.to[Int64] - cirX(3).to[Int64])*(c.to[Int64] -cirX(3).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,63,31), Pixel16(0,0,0))
+                  val pixel5 = mux((r.to[Int64] - cirY(4).to[Int64])*(r.to[Int64] -cirY(4).to[Int64]) + (c.to[Int64] - cirX(4).to[Int64])*(c.to[Int64] -cirX(4).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,63,31), Pixel16(0,0,0))
+                
+                  val pixel = Pixel16(pixel1.b|pixel2.b|pixel3.b|pixel4.b|pixel5.b, pixel1.g| pixel2.g|pixel3.g|pixel4.g|pixel5.g, pixel1.r| pixel2.r|pixel3.r| pixel4.r|pixel5.r)
                   imgOut(r, c) = pixel
 
                 }
