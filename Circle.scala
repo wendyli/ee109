@@ -9,6 +9,7 @@ object Circle extends SpatialApp {
   val Cmax = 320
   val Rmax = 240
   val BallCount = 10
+  val cirCount = 3
 
   type Int64 = FixPt[TRUE,_64,_0]
   type Int16 = FixPt[TRUE,_16,_0]
@@ -22,9 +23,9 @@ object Circle extends SpatialApp {
   @virtualize
   def convolveVideoStream(): Unit = {
     val imgOut = BufferedOut[Pixel16](target.VGA)
-    val cirCount = ArgIn[Int]
-    val c = args(0).to[Int]
-    setArg(cirCount, c)
+    val dwell = ArgIn[Int]
+    val d = args(0).to[Int]
+    setArg(dwell, d)
 
     Accel{
 
