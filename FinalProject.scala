@@ -77,7 +77,6 @@ object FinalProject extends SpatialApp {
                         mux( cirY(0) + cirVelY(0) <= 10, 10,     
                              cirY(0) + cirVelY(0)))
 
-
               cirX(1) = mux( cirX(1) + cirVelX(1) > Cmax -10, Cmax - 10, 
                         mux( cirX(1) + cirVelX(1) <= 10, 10, 
                              cirX(1) + cirVelX(1)))
@@ -92,9 +91,9 @@ object FinalProject extends SpatialApp {
             Sequential{
               Foreach(0 until dwell) { _ =>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
-                  val pixel1 = mux( (r > cirY(0) - 10) && (r < cirY(0) + 10) && (c > cirX(0) - 10) && (c < cirX(0) + 10), Pixel16(0,63,0), Pixel16(0,0,0))
-                  val pixel2 = mux( (r > cirY(1) - 5) && (r < cirY(1) + 5) && (c > cirX(1) - 15) && (c < cirX(1) + 15), Pixel16(0,0,31), Pixel16(0,0,0))
-                  //val pixel = mux( (r.to[Int64] - cirX(0).to[Int64])*(r.to[Int64] -cirX(0).to[Int64]) + (c.to[Int64] - cirY(0).to[Int64])*(c.to[Int64] -cirY(0).to[Int64]), Pixel16(0,63,0), Pixel16(0,0,0))
+
+                  val pixel1 = mux((r.to[Int64] - cirX(0).to[Int64])*(r.to[Int64] -cirX(0).to[Int64]) + (c.to[Int64] - cirY(0).to[Int64])*(c.to[Int64] -cirY(0).to[Int64]) < cirRad(0).to[Int64] * cirRad(0).to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
+                  val pixel2 = mux((r.to[Int64] - cirX(1).to[Int64])*(r.to[Int64] -cirX(1).to[Int64]) + (c.to[Int64] - cirY(1).to[Int64])*(c.to[Int64] -cirY(1).to[Int64]) < cirRad(1).to[Int64] * cirRad(1).to[Int64], Pixel16(0,0,31), Pixel16(0,0,0))
                   val pixel = Pixel16(pixel1.b|pixel2.b, pixel1.g| pixel2.g, pixel1.r| pixel2.r)
                   imgOut(r, c) = pixel
 
@@ -106,7 +105,6 @@ object FinalProject extends SpatialApp {
         }{state => mux(state == 2.to[Int], 0.to[Int], state + 1)}
 
       }// end of stream(*)
-
     }// end of accel 
   }
 
