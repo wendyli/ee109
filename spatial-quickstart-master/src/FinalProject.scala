@@ -11,6 +11,7 @@ object FinalProject extends SpatialApp {
   val cirCount = 3
   val cirRad = 10 
 
+  type Pos   = FixPt[TRUE,_16,_16]
   type Int64 = FixPt[TRUE,_64,_0]
   type Int16 = FixPt[TRUE,_16,_0]
   type UInt8 = FixPt[FALSE,_8,_0]
@@ -34,7 +35,7 @@ object FinalProject extends SpatialApp {
       val cirVelX = RegFile[Int](cirCount)
       val cirVelY = RegFile[Int](cirCount)
       val collisionType = RegFile[Int](cirCount) // 1 = ball to ball collision , 2 = border collision , 3 = no collision
-
+      val ballCollide = RegFile[Int](cirCount) // -1 no ball colliding, j = ball collided with
 
       // Fill array with circle values
       Foreach(0 until cirCount){ i =>
@@ -58,7 +59,8 @@ object FinalProject extends SpatialApp {
                   val distSqr = (cirX(i) - cirX(j)) * (cirX(i) - cirX(j)) + (cirY(i) - cirY(j))*(cirY(i) - cirY(j))
                   collisionType(i) = mux(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int] || cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 1.to[Int],
                                      mux(distSqr <= sqrRad, 2.to[Int], 
-                                         3.to[Int]))
+                                     3.to[Int]))
+                  ballCollide(i) = mux(distSqr <= sqrRad, j.to[Int], -1.to[Int])
                 }
               }
             }
@@ -67,19 +69,36 @@ object FinalProject extends SpatialApp {
             // 1 = border collision , 2 = ball to ball collision , 3 = no collision
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
-                
-                if(collisionType(i) == 1.to[Int]){ // border collision
-                  cirVelX(i) = mux( cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int], 0 - cirVelX(i), cirVelX(i))
-                  cirVelY(i) = mux( cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 0 - cirVelY(i), cirVelY(i))
-                }
-                //else if(collisionType(i) == 2.to[Int]){ //ball to ball collision
+                  
+                  val ball2 = ballCollide(i)
+                  val x2 = cirX(ball2)
+                  val y2 = cirY(ball2)
+                  val x1 = cirX(i)
+                  val y1 = cirY(i)
 
-                //}
+                  cirVelX(i) = mux(collisionType(i) == 1 &&(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int]),0 - cirVelX(i), 
+                               mux(collisionType(i) == 2 &&((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0)),0 - cirVelX(i),
+                               cirVelX(i)))
+
+                  cirVelY(i) = mux(collisionType(i) == 1 && (cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int]), 0 - cirVelY(i), 
+                               mux(collisionType(i) == 2 && ((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0)), 0 - cirVelY(i),
+                               cirVelY(i)))
+
+                  // (x-h1)^2 + (y-k1)^2 = 10^2 -> x^2 -2h1x + h1*h1 + y^2 - 2k1y + k1*k1 = 10^2
+                  // (x-h2)^2 + (y-k2)^2 = 10^2 -> x^2 - 2h2x + h2*h2 + y^2 - 2k2*y + k2*k2 = 10^2 
+                  // x(-2h1+2h2 ) + (h1*h1 - h2*h2) + y(-2k1+2k2) + k1*k1 - k2*k2 = 0 
+                  // y  = [-x(-2h1+2h2) - (h1*h1 - h2*h2) - (k1*k1 - k2*k2) ] /(-2k1 + 2k2)
+                  // solve for first equation
+                  // (x-h1)^2 + (y-k1)^2 = 10^2
+                  // (x-h1)^2 + ([-x(-2h1+2h2) - (h1*h1 - h2*h2) - (k1*k1 - k2*k2) ] /(-2k1 + 2k2) - k1)^2 = 10^2 
+                  // const n = -(-2h1+2h2) - (h1*h1 - h2*h2) - (k1*k1 - k2*k2) ] /(-2k1 + 2k2)
+                  // (x-h1)^2 + (n*x - k1)^2 = 10^2 
+                  // x^2 - 2h1x + h1^2 + n^2x^2 - 2k1*n*x + k1
 
               }
             }
 
-          }else if(state == 2.to[Int]){  // Calculate new positions or no collision detected 
+          }else if(state == 2.to[Int]){  // Calculate new positions 
 
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
