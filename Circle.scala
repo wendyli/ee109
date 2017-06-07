@@ -1,34 +1,14 @@
-Skip to content
-This repository
-Search
-Pull requests
-Issues
-Marketplace
-Gist
- @wendyli
- Sign out
-1
- Unwatch 2
-  Star 0
-  Fork 0 wendyli/ee109
- Code  Issues 0  Pull requests 1  Projects 0  Wiki  Settings Insights 
-Tree: 0529f8b8c2 Find file Copy pathee109/FinalProject.scala
-0529f8b  39 minutes ago
-@wendyli wendyli 3:04 - improved collision detection
-1 contributor
-RawBlameHistory      
-148 lines (117 sloc)  6 KB
 import spatial._
 import org.virtualized._
 import spatial.targets.DE1
 
-object FinalProject extends SpatialApp {
+object Circle extends SpatialApp {
   import IR._
 
   override val target = DE1
   val Cmax = 320
   val Rmax = 240
-  val cirCount = 3
+  val cirCount = 5
   val cirRad = 10 
 
   type Int64 = FixPt[TRUE,_64,_0]
@@ -78,14 +58,14 @@ object FinalProject extends SpatialApp {
               val borderCollision = RegFile[Int](cirCount)
               val ballCollision = RegFile[Int](cirCount)
 
-              Foreach(0 until cirCount){ i =>  // detect border collision 
+              Sequential.Foreach(0 until cirCount){ i =>  // detect border collision 
                 borderCollision(i) = mux(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int] || cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 1.to[Int], 0.to[Int])
                 ballCollide(i) = i.to[Int]
                 ballCollision(i) = 0.to[Int]
               }
 
-              Foreach(0 until cirCount){ i =>  // detect ball to ball collision
-                Foreach(0 until cirCount){ j =>
+              Sequential.Foreach(0 until cirCount){ i =>  // detect ball to ball collision
+                Sequential.Foreach(0 until cirCount){ j =>
                   val sqrRad = 4*cirRad*cirRad
                   val distSqr = (cirX(i) - cirX(j)) * (cirX(i) - cirX(j)) + (cirY(i) - cirY(j))*(cirY(i) - cirY(j))
                   ballCollision(i) = mux(distSqr <= sqrRad && (i != j), 1.to[Int], ballCollision(i))
@@ -93,7 +73,7 @@ object FinalProject extends SpatialApp {
                 }
               }
 
-             Foreach(0 until cirCount){ i => // determine collision type
+             Sequential.Foreach(0 until cirCount){ i => // determine collision type
                 collisionType(i) = mux(borderCollision(i) == 1, 1.to[Int], 
                                    mux(ballCollision(i) == 1, 2.to[Int], 
                                    0.to[Int]))
@@ -112,11 +92,11 @@ object FinalProject extends SpatialApp {
                   val y1 = cirY(i)
 
                   cirVelX(i) = mux(collisionType(i) == 1 &&(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int]),0 - cirVelX(i), 
-                               mux(collisionType(i) == 2 &&((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0)),0 - cirVelX(i),
+                               mux(collisionType(i) == 2 &&((x1 <= x2 && cirVelX(i) > 0) || (x1 >= x2 && cirVelX(i) < 0)),0 - cirVelX(i),
                                cirVelX(i)))
 
                   cirVelY(i) = mux(collisionType(i) == 1 && (cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int]), 0 - cirVelY(i), 
-                               mux(collisionType(i) == 2 && ((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0)), 0 - cirVelY(i),
+                               mux(collisionType(i) == 2 && ((y1 <= y2 && cirVelY(i) > 0) || (y1 >= y2 && cirVelY(i) < 0)), 0 - cirVelY(i),
                                cirVelY(i)))
               }
             }
@@ -140,13 +120,16 @@ object FinalProject extends SpatialApp {
             Sequential{
               Foreach(0 until dwell){ _ =>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
-                  
+                  Pipe{
                   val pixel1 = mux((r.to[Int64] - cirY(0).to[Int64])*(r.to[Int64] -cirY(0).to[Int64]) + (c.to[Int64] - cirX(0).to[Int64])*(c.to[Int64] -cirX(0).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
                   val pixel2 = mux((r.to[Int64] - cirY(1).to[Int64])*(r.to[Int64] -cirY(1).to[Int64]) + (c.to[Int64] - cirX(1).to[Int64])*(c.to[Int64] -cirX(1).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,0,31), Pixel16(0,0,0))
                   val pixel3 = mux((r.to[Int64] - cirY(2).to[Int64])*(r.to[Int64] -cirY(2).to[Int64]) + (c.to[Int64] - cirX(2).to[Int64])*(c.to[Int64] -cirX(2).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(31,0,0), Pixel16(0,0,0))
-                  val pixel = Pixel16(pixel1.b|pixel2.b|pixel3.b, pixel1.g| pixel2.g|pixel3.g, pixel1.r| pixel2.r|pixel3.r)
-                  imgOut(r, c) = pixel
+                  val pixel4 = mux((r.to[Int64] - cirY(3).to[Int64])*(r.to[Int64] -cirY(3).to[Int64]) + (c.to[Int64] - cirX(3).to[Int64])*(c.to[Int64] -cirX(3).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,63,31), Pixel16(0,0,0))
+                  val pixel5 = mux((r.to[Int64] - cirY(4).to[Int64])*(r.to[Int64] -cirY(4).to[Int64]) + (c.to[Int64] - cirX(4).to[Int64])*(c.to[Int64] -cirX(4).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(31,63,0), Pixel16(0,0,0))
+                  val pixel = Pixel16(pixel1.b|pixel2.b|pixel3.b|pixel4.b|pixel5.b, pixel1.g| pixel2.g|pixel3.g|pixel4.g|pixel5.g, pixel1.r| pixel2.r|pixel3.r| pixel4.r|pixel5.r)
 
+                  imgOut(r, c) = pixel
+                  }
                 }
               } 
             }
@@ -164,6 +147,4 @@ object FinalProject extends SpatialApp {
     val C = Cmax
     convolveVideoStream()
   }
-}]
-Contact GitHub API Training Shop Blog About
-© 2017 GitHub, Inc. Terms Privacy Security Status Help
+}
