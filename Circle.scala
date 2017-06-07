@@ -39,15 +39,15 @@ object Circle extends SpatialApp {
       // Fill array with circle values
       Foreach(0 until cirCount){ i =>
 
-          //cirX(i)    = random[UInt16](Cmax).to[Int]
-          //cirY(i)    = random[UInt16](Rmax).to[Int]
-          cirX(i) = 10.to[Int] + i*10
-          cirY(i) = 10.to[Int]
+          cirX(i)    = random[UInt16](Cmax).to[Int]
+          cirY(i)    = random[UInt16](Rmax).to[Int]
+          //cirX(i) = 10.to[Int] + i*10
+          //cirY(i) = 10.to[Int]
           cirRad(i)  = 10.to[Int]
-          cirVelX(i) = 2.to[Int]
-          cirVelY(i) = 2.to[Int]
-          //cirVelX(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
-          //cirVelY(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
+          //cirVelX(i) = 2.to[Int]
+          //cirVelY(i) = 2.to[Int]
+          cirVelX(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
+          cirVelY(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
       }
 
       // Generate circles
@@ -58,34 +58,24 @@ object Circle extends SpatialApp {
           if(state == 0.to[Int]){ // Set new velocities
             
             Sequential{
-              cirVelX(0) = mux( cirX(0) + cirRad(0) >= Cmax || cirX(0) - cirRad(0) <= 0.to[Int], 0 - cirVelX(0), cirVelX(0))
-              cirVelY(0) = mux( cirY(0) + cirRad(0) >= Rmax || cirY(0) - cirRad(0) <= 0.to[Int], 0 - cirVelY(0), cirVelY(0))
-
-              cirVelX(1) = mux( cirX(1) + cirRad(1) >= Cmax || cirX(1) - cirRad(1) <= 0.to[Int], 0 - cirVelX(1), cirVelX(1))
-              cirVelY(1) = mux( cirY(1) + cirRad(1) >= Rmax || cirY(1) - cirRad(1) <= 0.to[Int], 0 - cirVelY(1), cirVelY(1))
-              
+              Sequential.Foreach(0 until cirCount){ i => 
+                cirVelX(i) = mux( cirX(i) + cirRad(i) >= Cmax || cirX(i) - cirRad(i) <= 0.to[Int], 0 - cirVelX(i), cirVelX(i))
+                cirVelY(i) = mux( cirY(i) + cirRad(i) >= Rmax || cirY(i) - cirRad(i) <= 0.to[Int], 0 - cirVelY(i), cirVelY(i))
+              }
             }
 
           }else if(state == 1.to[Int]){  // Calculate new positions
 
             Sequential{
+              Sequential.Foreach(0 until cirCount){ i => 
+                cirX(i) = mux( cirX(i) + cirVelX(i) > Cmax -10, Cmax - 10, 
+                          mux( cirX(i) + cirVelX(i) <= 10, 10, 
+                               cirX(i) + cirVelX(i)))
 
-              cirX(0) = mux( cirX(0) + cirVelX(0) > Cmax -10, Cmax - 10, 
-                        mux( cirX(0) + cirVelX(0) <= 10, 10, 
-                             cirX(0) + cirVelX(0)))
-
-              cirY(0) = mux( cirY(0) + cirVelY(0) > Rmax -10, Rmax - 10, 
-                        mux( cirY(0) + cirVelY(0) <= 10, 10,     
-                             cirY(0) + cirVelY(0)))
-
-              cirX(1) = mux( cirX(1) + cirVelX(1) > Cmax -10, Cmax - 10, 
-                        mux( cirX(1) + cirVelX(1) <= 10, 10, 
-                             cirX(1) + cirVelX(1)))
-
-              cirY(1) = mux( cirY(1) + cirVelY(1) > Rmax -10, Rmax - 10, 
-                        mux( cirY(1) + cirVelY(1) <= 10, 10,     
-                             cirY(1) + cirVelY(1)))
-              
+                cirY(i) = mux( cirY(i) + cirVelY(i) > Rmax -10, Rmax - 10, 
+                          mux( cirY(i) + cirVelY(i) <= 10, 10,     
+                               cirY(i) + cirVelY(i)))
+              }
             }
           
           }else if(state == 2.to[Int]){  // Draw circle 
@@ -96,7 +86,8 @@ object Circle extends SpatialApp {
 
                   val pixel1 = mux((r.to[Int64] - cirY(0).to[Int64])*(r.to[Int64] -cirY(0).to[Int64]) + (c.to[Int64] - cirX(0).to[Int64])*(c.to[Int64] -cirX(0).to[Int64]) < cirRad(0).to[Int64] * cirRad(0).to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
                   val pixel2 = mux((r.to[Int64] - cirY(1).to[Int64])*(r.to[Int64] -cirY(1).to[Int64]) + (c.to[Int64] - cirX(1).to[Int64])*(c.to[Int64] -cirX(1).to[Int64]) < cirRad(1).to[Int64] * cirRad(1).to[Int64], Pixel16(0,0,31), Pixel16(0,0,0))
-                  val pixel = Pixel16(pixel1.b|pixel2.b, pixel1.g| pixel2.g, pixel1.r| pixel2.r)
+                  val pixel3 = mux((r.to[Int64] - cirY(2).to[Int64])*(r.to[Int64] -cirY(2).to[Int64]) + (c.to[Int64] - cirX(2).to[Int64])*(c.to[Int64] -cirX(2).to[Int64]) < cirRad(2).to[Int64] * cirRad(2).to[Int64], Pixel16(31,0,0), Pixel16(0,0,0))
+                  val pixel = Pixel16(pixel1.b|pixel2.b|pixel3.b, pixel1.g| pixel2.g|pixel3.g, pixel1.r| pixel2.r|pixel3.r)
                   imgOut(r, c) = pixel
 
                 }
