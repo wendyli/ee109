@@ -8,8 +8,8 @@ object FinalProject extends SpatialApp {
   override val target = DE1
   val Cmax = 320
   val Rmax = 240
-  val BallCount = 10
-  //val cirCount = 3
+  val cirCount = 3
+  val cirRad = 10 
 
   type Int64 = FixPt[TRUE,_64,_0]
   type Int16 = FixPt[TRUE,_16,_0]
@@ -23,78 +23,99 @@ object FinalProject extends SpatialApp {
   @virtualize
   def convolveVideoStream(): Unit = {
     val imgOut = BufferedOut[Pixel16](target.VGA)
-    val cirCount = ArgIn[Int]
-    val c = args(0).to[Int]
-    setArg(cirCount, c)
+    val dwell = ArgIn[Int]
+    val d = args(0).to[Int]
+    setArg(dwell, d)
 
     Accel{
 
-      val cirX = SRAM[Int](3)
-      val cirY = SRAM[Int](3)
-      val cirRad = SRAM[Int](3)
-      val cirVelX = SRAM[Int](3)
-      val cirVelY = SRAM[Int](3)
+      val cirX = RegFile[Int](cirCount)
+      val cirY = RegFile[Int](cirCount)
+      val cirVelX = RegFile[Int](cirCount)
+      val cirVelY = RegFile[Int](cirCount)
 
       // Fill array with circle values
       Foreach(0 until cirCount){ i =>
-
           cirX(i)    = random[UInt16](Cmax).to[Int]
           cirY(i)    = random[UInt16](Rmax).to[Int]
-          cirRad(i)  = 10.to[Int]
           cirVelX(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
           cirVelY(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
       }
 
       // Generate circles
       Stream(*) { _ => 
-
-        FSM[Int]{state => state < 3}{state =>
         
-          if(state == 0.to[Int]){ // Set new velocities
+        val collisionType = Reg[Int](0) // 1 = ball to ball collision , 2 = border collision , 3 = no collision
+
+        FSM[Int]{state => state < 5}{state =>
+        
+          if(state == 0.to[Int]){ // Determine collision type
             
             Sequential{
-              Foreach(0 until cirCount){ i=>
-                cirVelX(i) = mux( cirX(i) + cirRad(i) >= Cmax || cirX(i) - cirRad(i) <= 0.to[Int], 0 - cirVelX(i), cirVelX(i))
-                cirVelY(i) = mux( cirY(i) + cirRad(i) >= Rmax || cirY(i) - cirRad(i) <= 0.to[Int], 0 - cirVelY(i), cirVelY(i))
+              Sequential.Foreach(0 until cirCount){ i => 
+                Sequential.Foreach(0 until cirCount){ j =>
+
+                  val sqrRad = 4*cirRad*cirRad
+                  val distSqr = (cirX(i) - cirX(j)) * (cirX(i) - cirX(j)) + (cirY(i) - cirY(j))*(cirY(i) - cirY(j))
+                  collisionType := mux(distSqr <= sqrRad, 1.to[Int], 
+                                   mux( cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int] || cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 2.to[Int],
+                                   3.to[Int]))
+                }
+              }
+
+            }
+
+          }else if(state == 1.to[Int]){ // ball to ball collision 
+            
+            Sequential{
+              Sequential.Foreach(0 until cirCount){ i => 
+                cirVelX(i) = cirVelX(i)
+                cirVelY(i) = cirVelY(i)
               }
             }
 
-          }else if(state == 1.to[Int]){  // Calculate new positions
+          }else if(state == 2.to[Int]){ // border collision 
+            Sequential{
+              Sequential.Foreach(0 until cirCount){ i => 
+                cirVelX(i) = mux( cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int], 0 - cirVelX(i), cirVelX(i))
+                cirVelY(i) = mux( cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 0 - cirVelY(i), cirVelY(i))
+              }
+            }
+            
+          }else if(state == 3.to[Int]){  // Calculate new positions or no collision detected 
 
             Sequential{
-              Foreach(0 until cirCount){ i=>
-                cirX(i) = mux( cirX(i) + cirVelX(i) > Cmax -10, Cmax - 10, 
-                          mux( cirX(i) + cirVelX(i) <= 10, 10, 
+              Sequential.Foreach(0 until cirCount){ i => 
+                cirX(i) = mux( cirX(i) + cirVelX(i) > Cmax -cirRad, Cmax - cirRad, 
+                          mux( cirX(i) + cirVelX(i) <= cirRad, cirRad, 
                                cirX(i) + cirVelX(i)))
 
-                cirY(i) = mux( cirY(i) + cirVelY(i) > Rmax -10, Rmax - 10, 
-                          mux( cirY(i) + cirVelY(i) <= 10, 10,     
+                cirY(i) = mux( cirY(i) + cirVelY(i) > Rmax -cirRad, Rmax - cirRad, 
+                          mux( cirY(i) + cirVelY(i) <= cirRad, cirRad,     
                                cirY(i) + cirVelY(i)))
               }
             }
           
-          }else if(state == 2.to[Int]){  // Draw circle 
+          }else if(state == 4.to[Int]){  // Draw circle 
             
             Sequential{
-              Foreach(0 until 100) { _ =>
+              Foreach(0 until dwell) { _ =>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
-                  val acc = Reg[UInt6](0)
-                  Reduce(acc)(0 until cirCount){i =>
-                      val green_pixel = mux( (r > cirY(0) - 10) && (r < cirY(0) + 10) && (c > cirX(0) - 10) && (c < cirX(0) + 10), 63.to[UInt6], 0.to[UInt6])
-                      //val green_pixel = mux( (r.to[UInt64] - cirX(i).to[UInt64])*(r.to[Int64] -cirX(i).to[Int64]) + (c.to[Int64] - cirY(i).to[Int64])*(c.to[Int64] -cirY(i).to[Int64]) < cirRad(i).to[Int64] * cirRad(i).to[Int64], 63.to[UInt6], 0.to[UInt6])
-                      green_pixel
-                  }{(a,b) => a | b }
-                  imgOut(r,c) = Pixel16(0, acc.value, 0)
-
+                  val pixel1 = mux((r.to[Int64] - cirY(0).to[Int64])*(r.to[Int64] -cirY(0).to[Int64]) + (c.to[Int64] - cirX(0).to[Int64])*(c.to[Int64] -cirX(0).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
+                  val pixel2 = mux((r.to[Int64] - cirY(1).to[Int64])*(r.to[Int64] -cirY(1).to[Int64]) + (c.to[Int64] - cirX(1).to[Int64])*(c.to[Int64] -cirX(1).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,0,31), Pixel16(0,0,0))
+                  val pixel3 = mux((r.to[Int64] - cirY(2).to[Int64])*(r.to[Int64] -cirY(2).to[Int64]) + (c.to[Int64] - cirX(2).to[Int64])*(c.to[Int64] -cirX(2).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(31,0,0), Pixel16(0,0,0))
+                  val pixel = Pixel16(pixel1.b|pixel2.b|pixel3.b, pixel1.g| pixel2.g|pixel3.g, pixel1.r| pixel2.r|pixel3.r)
+                  imgOut(r, c) = pixel
                 }
               } 
             }
           }
 
-        }{state => mux(state == 2.to[Int], 0.to[Int], state + 1)}
+        }{state => mux(state == 4.to[Int], 0.to[Int], 
+                   mux(state == 0, collisionType.value,
+                   state + 1))}
 
       }// end of stream(*)
-
     }// end of accel 
   }
 
