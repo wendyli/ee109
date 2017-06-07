@@ -76,23 +76,23 @@ object FinalProject extends SpatialApp {
           
           }else if(state == 2.to[Int]){  // Draw circle 
             
-            Sequential{
-              Foreach(0 until dwell) { _ =>
+            Sequential.Foreach(0 until dwell) { _ =>
 
-                Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
-                  val accum = Reg[UInt6](0)
-
-                  Foreach(0 until cirCount){ i =>
-                    val g_pix = mux((r.to[Int64] - cirX(i).to[Int64])*(r.to[Int64] -cirX(i).to[Int64]) + (c.to[Int64] - cirY(i).to[Int64])*(c.to[Int64] -cirY(i).to[Int64]) < cirRad(i).to[Int64] * cirRad(imgOut).to[Int64], 63.to[UInt6], 0)
-                    accum := g_pix | accum.value
-                  }
-
-                  imgOut(r, c) = Pixel16(0, accum.value, 0)
+              Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
+                
+                val accum = Reg[UInt6](0)
+                Foreach(0 until cirCount){ i =>
+                  
+                  val area = (r.to[Int64] - cirX(i).to[Int64])*(r.to[Int64] -cirX(i).to[Int64]) + (c.to[Int64] - cirY(i).to[Int64])*(c.to[Int64] -cirY(i).to[Int64]) 
+                  accum := mux(area < 100.to[Int64], 63.to[UInt6] | accum.value, 0.to[UInt6] | accum.value)
 
                 }
 
-              } 
-            }
+                imgOut(r, c) = Pixel16(0, accum.value, 0)
+
+              }
+
+            } 
           }
 
         }{state => mux(state == 2.to[Int], 0.to[Int], state + 1)}
