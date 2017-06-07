@@ -77,7 +77,7 @@ object Circle extends SpatialApp {
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
 
                   val acc = Reg[UInt6](0)
-                  Reduce(acc)(0 until cirCount){ i=>
+                  Reduce(acc)(cirCount by 1){ i=>
                     val green_pixel = mux((r.to[Int64] - cirY(i).to[Int64])*(r.to[Int64] -cirY(i).to[Int64]) + (c.to[Int64] - cirX(i).to[Int64])*(c.to[Int64] -cirX(i).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], 63.to[UInt6], 0.to[UInt6])
                     green_pixel 
                   }{(a,b) => (a|b)}
