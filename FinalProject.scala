@@ -144,4 +144,4 @@ object FinalProject extends SpatialApp {
     val C = Cmax
     convolveVideoStream()
   }
-}
+}]
