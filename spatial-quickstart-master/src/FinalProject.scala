@@ -33,6 +33,8 @@ object FinalProject extends SpatialApp {
       val cirY = RegFile[Int](cirCount)
       val cirVelX = RegFile[Int](cirCount)
       val cirVelY = RegFile[Int](cirCount)
+      val collisionType = RegFile[Int](cirCount) // 1 = ball to ball collision , 2 = border collision , 3 = no collision
+
 
       // Fill array with circle values
       Foreach(0 until cirCount){ i =>
@@ -45,44 +47,39 @@ object FinalProject extends SpatialApp {
       // Generate circles
       Stream(*) { _ => 
         
-        val collisionType = Reg[Int](0) // 1 = ball to ball collision , 2 = border collision , 3 = no collision
-
-        FSM[Int]{state => state < 5}{state =>
+        FSM[Int]{state => state < 4}{state =>
         
           if(state == 0.to[Int]){ // Determine collision type
             
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
                 Sequential.Foreach(0 until cirCount){ j =>
-
                   val sqrRad = 4*cirRad*cirRad
                   val distSqr = (cirX(i) - cirX(j)) * (cirX(i) - cirX(j)) + (cirY(i) - cirY(j))*(cirY(i) - cirY(j))
-                  collisionType := mux(distSqr <= sqrRad, 1.to[Int], 
-                                   mux( cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int] || cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 2.to[Int],
-                                   3.to[Int]))
+                  collisionType(i) = mux(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int] || cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 1.to[Int],
+                                     mux(distSqr <= sqrRad, 2.to[Int], 
+                                         3.to[Int]))
                 }
               }
-
             }
 
-          }else if(state == 1.to[Int]){ // ball to ball collision 
-            
+          }else if(state == 1.to[Int]){ // Update velocities 
+            // 1 = border collision , 2 = ball to ball collision , 3 = no collision
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
-                cirVelX(i) = cirVelX(i)
-                cirVelY(i) = cirVelY(i)
+                
+                if(collisionType(i) == 1.to[Int]){ // border collision
+                  cirVelX(i) = mux( cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int], 0 - cirVelX(i), cirVelX(i))
+                  cirVelY(i) = mux( cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 0 - cirVelY(i), cirVelY(i))
+                }
+                //else if(collisionType(i) == 2.to[Int]){ //ball to ball collision
+
+                //}
+
               }
             }
 
-          }else if(state == 2.to[Int]){ // border collision 
-            Sequential{
-              Sequential.Foreach(0 until cirCount){ i => 
-                cirVelX(i) = mux( cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int], 0 - cirVelX(i), cirVelX(i))
-                cirVelY(i) = mux( cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 0 - cirVelY(i), cirVelY(i))
-              }
-            }
-            
-          }else if(state == 3.to[Int]){  // Calculate new positions or no collision detected 
+          }else if(state == 2.to[Int]){  // Calculate new positions or no collision detected 
 
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
@@ -96,7 +93,7 @@ object FinalProject extends SpatialApp {
               }
             }
           
-          }else if(state == 4.to[Int]){  // Draw circle 
+          }else if(state == 3.to[Int]){  // Draw circle 
             
             Sequential{
               Foreach(0 until dwell) { _ =>
@@ -111,9 +108,7 @@ object FinalProject extends SpatialApp {
             }
           }
 
-        }{state => mux(state == 4.to[Int], 0.to[Int], 
-                   mux(state == 0, collisionType.value,
-                   state + 1))}
+        }{state => mux(state == 3.to[Int], 0.to[Int], state + 1)}
 
       }// end of stream(*)
     }// end of accel 
