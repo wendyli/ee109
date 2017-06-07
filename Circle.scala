@@ -8,7 +8,6 @@ object Circle extends SpatialApp {
   override val target = DE1
   val Cmax = 320
   val Rmax = 240
-  val BallCount = 10
   val cirCount = 3
   val cirRad = 10 
 
@@ -30,10 +29,10 @@ object Circle extends SpatialApp {
 
     Accel{
 
-      val cirX = RegFile[Int](3)
-      val cirY = RegFile[Int](3)
-      val cirVelX = RegFile[Int](3)
-      val cirVelY = RegFile[Int](3)
+      val cirX = RegFile[Int](cirCount)
+      val cirY = RegFile[Int](cirCount)
+      val cirVelX = RegFile[Int](cirCount)
+      val cirVelY = RegFile[Int](cirCount)
 
       // Fill array with circle values
       Foreach(0 until cirCount){ i =>
@@ -77,11 +76,12 @@ object Circle extends SpatialApp {
               Foreach(0 until dwell) { _ =>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
 
-                  val pixel1 = mux((r.to[Int64] - cirY(0).to[Int64])*(r.to[Int64] -cirY(0).to[Int64]) + (c.to[Int64] - cirX(0).to[Int64])*(c.to[Int64] -cirX(0).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
-                  val pixel2 = mux((r.to[Int64] - cirY(1).to[Int64])*(r.to[Int64] -cirY(1).to[Int64]) + (c.to[Int64] - cirX(1).to[Int64])*(c.to[Int64] -cirX(1).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,0,31), Pixel16(0,0,0))
-                  val pixel3 = mux((r.to[Int64] - cirY(2).to[Int64])*(r.to[Int64] -cirY(2).to[Int64]) + (c.to[Int64] - cirX(2).to[Int64])*(c.to[Int64] -cirX(2).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(31,0,0), Pixel16(0,0,0))
-                  val pixel = Pixel16(pixel1.b|pixel2.b|pixel3.b, pixel1.g| pixel2.g|pixel3.g, pixel1.r| pixel2.r|pixel3.r)
-                  imgOut(r, c) = pixel
+                  val acc = Reg[UInt6](0)
+                  Reduce(acc)(0 until cirCount){ i=>
+                    val green_pixel = mux((r.to[Int64] - cirY(i).to[Int64])*(r.to[Int64] -cirY(i).to[Int64]) + (c.to[Int64] - cirX(i).to[Int64])*(c.to[Int64] -cirX(i).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], 63.to[UInt6], 0.to[UInt6])
+                    green_pixel 
+                  }{(a,b) => (a|b)}
+                  imgOut(r, c) = Pixel16(0.to[UInt5], acc.value.to[UInt6], 0.to[UInt5])
 
                 }
               } 
