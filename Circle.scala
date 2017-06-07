@@ -33,6 +33,9 @@ object Circle extends SpatialApp {
       val cirY = RegFile[Int](cirCount)
       val cirVelX = RegFile[Int](cirCount)
       val cirVelY = RegFile[Int](cirCount)
+      val collisionType = RegFile[Int](cirCount) // 1 = ball to ball collision , 2 = border collision , 3 = no collision
+      val ballCollide = RegFile[Int](cirCount) // -1 no ball colliding, j = ball collided with
+
 
       // Fill array with circle values
       Foreach(0 until cirCount){ i =>
@@ -47,16 +50,42 @@ object Circle extends SpatialApp {
 
         FSM[Int]{state => state < 3}{state =>
         
-          if(state == 0.to[Int]){ // Set new velocities
+          if(state == 0.to[Int]){ // Determine collision type
             
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
-                cirVelX(i) = mux( cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int], 0 - cirVelX(i), cirVelX(i))
-                cirVelY(i) = mux( cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 0 - cirVelY(i), cirVelY(i))
+                Sequential.Foreach(0 until cirCount){ j =>
+                  val sqrRad = 4*cirRad*cirRad
+                  val distSqr = (cirX(i) - cirX(j)) * (cirX(i) - cirX(j)) + (cirY(i) - cirY(j))*(cirY(i) - cirY(j))
+                  collisionType(i) = mux(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int] || cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 1.to[Int],
+                                     mux(distSqr <= sqrRad && (i != j), 2.to[Int], 
+                                     3.to[Int]))
+                  ballCollide(i) = mux(distSqr <= sqrRad && (i != j), j.to[Int], i.to[Int])
+                }
               }
             }
+          }else if(state == 1.to[Int]){ // Update velocities 
+            // 1 = border collision , 2 = ball to ball collision , 3 = no collision
+            Sequential{
+              Sequential.Foreach(0 until cirCount){ i => 
+                  
+                  val ball2 = ballCollide(i)
+                  val x2 = cirX(ball2)
+                  val y2 = cirY(ball2)
+                  val x1 = cirX(i)
+                  val y1 = cirY(i)
 
-          }else if(state == 1.to[Int]){  // Calculate new positions
+                  cirVelX(i) = mux(collisionType(i) == 1 &&(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int]),0 - cirVelX(i), 
+                               mux(collisionType(i) == 2 &&((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0)),0 - cirVelX(i),
+                               cirVelX(i)))
+
+                  cirVelY(i) = mux(collisionType(i) == 1 && (cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int]), 0 - cirVelY(i), 
+                               mux(collisionType(i) == 2 && ((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0)), 0 - cirVelY(i),
+                               cirVelY(i)))
+              }
+            }
+          
+          }else if(state == 2.to[Int]){  // Calculate new positions
 
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
@@ -70,25 +99,24 @@ object Circle extends SpatialApp {
               }
             }
           
-          }else if(state == 2.to[Int]){  // Draw circle 
+          }else if(state == 3.to[Int]){  // Draw circle 
             
             Sequential{
               Foreach(0 until dwell) { _ =>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
 
-                  val acc = Reg[UInt6](0)
-                  Sequential.Foreach(0 until cirCount){ i=>
-                    val green_pixel = mux((r.to[Int64] - cirY(i).to[Int64])*(r.to[Int64] -cirY(i).to[Int64]) + (c.to[Int64] - cirX(i).to[Int64])*(c.to[Int64] -cirX(i).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], 63.to[UInt6], 0.to[UInt6])
-                    acc := mux(acc.value == 0.to[UInt6], green_pixel, acc.value)
-                  }
-                  imgOut(r, c) = Pixel16(0.to[UInt5], acc.value, 0.to[UInt5])
+                  val pixel1 = mux((r.to[Int64] - cirY(0).to[Int64])*(r.to[Int64] -cirY(0).to[Int64]) + (c.to[Int64] - cirX(0).to[Int64])*(c.to[Int64] -cirX(0).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
+                  val pixel2 = mux((r.to[Int64] - cirY(1).to[Int64])*(r.to[Int64] -cirY(1).to[Int64]) + (c.to[Int64] - cirX(1).to[Int64])*(c.to[Int64] -cirX(1).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,0,31), Pixel16(0,0,0))
+                  val pixel3 = mux((r.to[Int64] - cirY(2).to[Int64])*(r.to[Int64] -cirY(2).to[Int64]) + (c.to[Int64] - cirX(2).to[Int64])*(c.to[Int64] -cirX(2).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(31,0,0), Pixel16(0,0,0))
+                  val pixel = Pixel16(pixel1.b|pixel2.b|pixel3.b, pixel1.g| pixel2.g|pixel3.g, pixel1.r| pixel2.r|pixel3.r)
+                  imgOut(r, c) = pixel
 
                 }
               } 
             }
           }
 
-        }{state => mux(state == 2.to[Int], 0.to[Int], state + 1)}
+        }{state => mux(state == 3.to[Int], 0.to[Int], state + 1)}
 
       }// end of stream(*)
     }// end of accel 
