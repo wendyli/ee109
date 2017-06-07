@@ -92,11 +92,11 @@ object FinalProject extends SpatialApp {
                   val y1 = cirY(i)
 
                   cirVelX(i) = mux(collisionType(i) == 1 &&(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int]),0 - cirVelX(i), 
-                               mux(collisionType(i) == 2 &&((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0)),0 - cirVelX(i),
+                               mux(collisionType(i) == 2 &&((x1 <= x2 && cirVelX(i) > 0) || (x1 >= x2 && cirVelX(i) < 0)),0 - cirVelX(i),
                                cirVelX(i)))
 
                   cirVelY(i) = mux(collisionType(i) == 1 && (cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int]), 0 - cirVelY(i), 
-                               mux(collisionType(i) == 2 && ((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0)), 0 - cirVelY(i),
+                               mux(collisionType(i) == 2 && ((y1 <= y2 && cirVelY(i) > 0) || (y1 >= y2 && cirVelY(i) < 0)), 0 - cirVelY(i),
                                cirVelY(i)))
               }
             }
