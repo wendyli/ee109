@@ -58,19 +58,21 @@ object FinalProject extends SpatialApp {
           if(state == 0.to[Int]){ // Set new velocities
             
             Sequential{
-
+              Sequential{
               cirVelX(0) = mux( cirX(0) + cirRad(0) >= Cmax || cirX(0) - cirRad(0) <= 0.to[Int], 0 - cirVelX(0), cirVelX(0))
               cirVelY(0) = mux( cirY(0) + cirRad(0) >= Rmax || cirY(0) - cirRad(0) <= 0.to[Int], 0 - cirVelY(0), cirVelY(0))
+              }
 
-              cirVelX(0) = mux( cirX(0) + cirRad(0) >= Cmax || cirX(0) - cirRad(0) <= 0.to[Int], 0 - cirVelX(0), cirVelX(0))
-              cirVelY(0) = mux( cirY(0) + cirRad(0) >= Rmax || cirY(0) - cirRad(0) <= 0.to[Int], 0 - cirVelY(0), cirVelY(0))
-
+              Sequential{
+              cirVelX(1) = mux( cirX(1) + cirRad(1) >= Cmax || cirX(1) - cirRad(1) <= 0.to[Int], 0 - cirVelX(1), cirVelX(1))
+              cirVelY(1) = mux( cirY(1) + cirRad(1) >= Rmax || cirY(1) - cirRad(1) <= 0.to[Int], 0 - cirVelY(1), cirVelY(1))
+              }
             }
 
           }else if(state == 1.to[Int]){  // Calculate new positions
 
             Sequential{
-
+              Sequential{
               cirX(0) = mux( cirX(0) + cirVelX(0) > Cmax -10, Cmax - 10, 
                         mux( cirX(0) + cirVelX(0) <= 10, 10, 
                              cirX(0) + cirVelX(0)))
@@ -78,14 +80,17 @@ object FinalProject extends SpatialApp {
               cirY(0) = mux( cirY(0) + cirVelY(0) > Rmax -10, Rmax - 10, 
                         mux( cirY(0) + cirVelY(0) <= 10, 10,     
                              cirY(0) + cirVelY(0)))
+              }
 
-              cirX(0) = mux( cirX(0) + cirVelX(0) > Cmax -10, Cmax - 10, 
-                        mux( cirX(0) + cirVelX(0) <= 10, 10, 
-                             cirX(0) + cirVelX(0)))
+              Sequential{
+              cirX(1) = mux( cirX(1) + cirVelX(1) > Cmax -10, Cmax - 10, 
+                        mux( cirX(1) + cirVelX(1) <= 10, 10, 
+                             cirX(1) + cirVelX(1)))
 
-              cirY(0) = mux( cirY(0) + cirVelY(0) > Rmax -10, Rmax - 10, 
-                        mux( cirY(0) + cirVelY(0) <= 10, 10,     
-                             cirY(0) + cirVelY(0)))
+              cirY(1) = mux( cirY(1) + cirVelY(1) > Rmax -10, Rmax - 10, 
+                        mux( cirY(1) + cirVelY(1) <= 10, 10,     
+                             cirY(1) + cirVelY(1)))
+              }
             }
           
           }else if(state == 2.to[Int]){  // Draw circle 
