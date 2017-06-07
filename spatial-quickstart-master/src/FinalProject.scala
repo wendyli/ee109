@@ -18,7 +18,6 @@ object FinalProject extends SpatialApp {
   type UInt5 = FixPt[FALSE,_5,_0]
   type UInt6 = FixPt[FALSE,_6,_0]
 
-
   @struct case class Pixel16(b: UInt5, g: UInt6, r: UInt5)
 
   @virtualize
@@ -44,7 +43,6 @@ object FinalProject extends SpatialApp {
           cirRad(i)  = 10.to[Int]
           cirVelX(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
           cirVelY(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
-
       }
 
       // Generate circles
@@ -54,50 +52,42 @@ object FinalProject extends SpatialApp {
         
           if(state == 0.to[Int]){ // Set new velocities
             
-            Sequential.Foreach(0 until cirCount){ i =>
-              
-              cirVelX(i) = mux( cirX(i) + cirRad(i) >= Cmax || cirX(i) - cirRad(i) <= 0.to[Int], 0 - cirVelX(i), cirVelX(i))
-              cirVelY(i) = mux( cirY(i) + cirRad(i) >= Rmax || cirY(i) - cirRad(i) <= 0.to[Int], 0 - cirVelY(i), cirVelY(i))
-            
+            Sequential{
+              cirVelX(0) = mux( cirX(0) + cirRad(0) >= Cmax || cirX(0) - cirRad(0) <= 0.to[Int], 0 - cirVelX(0), cirVelX(0))
+              cirVelY(0) = mux( cirY(0) + cirRad(0) >= Rmax || cirY(0) - cirRad(0) <= 0.to[Int], 0 - cirVelY(0), cirVelY(0))
             }
 
-          }else if(state == 1.to[Int]){ // Calculate new positions
+          }else if(state == 1.to[Int]){  // Calculate new positions
 
-            Sequential.Foreach(0 until cirCount){ i =>
+            Sequential{
 
-              cirX(0) = mux( cirX(i) + cirVelX(i) > Cmax - 10, Cmax - 10, 
-                        mux( cirX(i) + cirVelX(i) <= 10, 10, 
-                             cirX(i) + cirVelX(i)))
+              cirX(0) = mux( cirX(0) + cirVelX(0) > Cmax -10, Cmax - 10, 
+                        mux( cirX(0) + cirVelX(0) <= 10, 10, 
+                             cirX(0) + cirVelX(0)))
 
-              cirY(0) = mux( cirY(i) + cirVelY(i) > Rmax - 10, Rmax - 10, 
-                        mux( cirY(i) + cirVelY(i) <= 10, 10,     
-                             cirY(i) + cirVelY(i)))
+              cirY(0) = mux( cirY(0) + cirVelY(0) > Rmax -10, Rmax - 10, 
+                        mux( cirY(0) + cirVelY(0) <= 10, 10,     
+                             cirY(0) + cirVelY(0)))
             }
           
           }else if(state == 2.to[Int]){  // Draw circle 
             
-            Sequential.Foreach(0 until dwell) { _ =>
-
-              Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
-                
-                val accum = Reg[UInt6](0)
-                Foreach(0 until cirCount){ i =>
+            Sequential{
+              Foreach(0 until dwell) { _ =>
+                Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
                   
-                  val area = (r.to[Int64] - cirX(i).to[Int64])*(r.to[Int64] -cirX(i).to[Int64]) + (c.to[Int64] - cirY(i).to[Int64])*(c.to[Int64] -cirY(i).to[Int64]) 
-                  accum := mux(area < 100.to[Int64], 63.to[UInt6] | accum.value, 0.to[UInt6] | accum.value)
+                  val pixel = mux( (r.to[Int64] - cirX(0).to[Int64])*(r.to[Int64] -cirX(0).to[Int64]) + (c.to[Int64] - cirY(0).to[Int64])*(c.to[Int64] -cirY(0).to[Int64]), Pixel16(0,63,0), Pixel16(0,0,0))
+                  imgOut(r, c) = pixel
 
                 }
-
-                imgOut(r, c) = Pixel16(0, accum.value, 0)
-
-              }
-
-            } 
+              } 
+            }
           }
 
         }{state => mux(state == 2.to[Int], 0.to[Int], state + 1)}
 
       }// end of stream(*)
+
     }// end of accel 
   }
 
