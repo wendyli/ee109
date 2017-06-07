@@ -9,7 +9,7 @@ object FinalProject extends SpatialApp {
   val Cmax = 320
   val Rmax = 240
   val BallCount = 10
-  val cirCount = 3
+  //val cirCount = 3
 
   type Int64 = FixPt[TRUE,_64,_0]
   type Int16 = FixPt[TRUE,_16,_0]
@@ -23,9 +23,9 @@ object FinalProject extends SpatialApp {
   @virtualize
   def convolveVideoStream(): Unit = {
     val imgOut = BufferedOut[Pixel16](target.VGA)
-    val dwell = ArgIn[Int]
-    val d = args(0).to[Int]
-    setArg(dwell, d)
+    val cirCount = ArgIn[Int]
+    val c = args(0).to[Int]
+    setArg(cirCount, c)
 
     Accel{
 
@@ -53,31 +53,38 @@ object FinalProject extends SpatialApp {
           if(state == 0.to[Int]){ // Set new velocities
             
             Sequential{
-              cirVelX(0) = mux( cirX(0) + cirRad(0) >= Cmax || cirX(0) - cirRad(0) <= 0.to[Int], 0 - cirVelX(0), cirVelX(0))
-              cirVelY(0) = mux( cirY(0) + cirRad(0) >= Rmax || cirY(0) - cirRad(0) <= 0.to[Int], 0 - cirVelY(0), cirVelY(0))
+              Foreach(0 until cirCount){ i=>
+                cirVelX(i) = mux( cirX(i) + cirRad(i) >= Cmax || cirX(i) - cirRad(i) <= 0.to[Int], 0 - cirVelX(i), cirVelX(i))
+                cirVelY(i) = mux( cirY(i) + cirRad(i) >= Rmax || cirY(i) - cirRad(i) <= 0.to[Int], 0 - cirVelY(i), cirVelY(i))
+              }
             }
 
           }else if(state == 1.to[Int]){  // Calculate new positions
 
             Sequential{
+              Foreach(0 until cirCount){ i=>
+                cirX(i) = mux( cirX(i) + cirVelX(i) > Cmax -10, Cmax - 10, 
+                          mux( cirX(i) + cirVelX(i) <= 10, 10, 
+                               cirX(i) + cirVelX(i)))
 
-              cirX(0) = mux( cirX(0) + cirVelX(0) > Cmax -10, Cmax - 10, 
-                        mux( cirX(0) + cirVelX(0) <= 10, 10, 
-                             cirX(0) + cirVelX(0)))
-
-              cirY(0) = mux( cirY(0) + cirVelY(0) > Rmax -10, Rmax - 10, 
-                        mux( cirY(0) + cirVelY(0) <= 10, 10,     
-                             cirY(0) + cirVelY(0)))
+                cirY(i) = mux( cirY(i) + cirVelY(i) > Rmax -10, Rmax - 10, 
+                          mux( cirY(i) + cirVelY(i) <= 10, 10,     
+                               cirY(i) + cirVelY(i)))
+              }
             }
           
           }else if(state == 2.to[Int]){  // Draw circle 
             
             Sequential{
-              Foreach(0 until dwell) { _ =>
+              Foreach(0 until 100) { _ =>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
-                  
-                  val pixel = mux( (r.to[Int64] - cirX(0).to[Int64])*(r.to[Int64] -cirX(0).to[Int64]) + (c.to[Int64] - cirY(0).to[Int64])*(c.to[Int64] -cirY(0).to[Int64]), Pixel16(0,63,0), Pixel16(0,0,0))
-                  imgOut(r, c) = pixel
+                  val acc = Reg[UInt6](0)
+                  Reduce(acc)(0 until cirCount){i =>
+                      val green_pixel = mux( (r > cirY(0) - 10) && (r < cirY(0) + 10) && (c > cirX(0) - 10) && (c < cirX(0) + 10), 63.to[UInt6], 0.to[UInt6])
+                      //val green_pixel = mux( (r.to[UInt64] - cirX(i).to[UInt64])*(r.to[Int64] -cirX(i).to[Int64]) + (c.to[Int64] - cirY(i).to[Int64])*(c.to[Int64] -cirY(i).to[Int64]) < cirRad(i).to[Int64] * cirRad(i).to[Int64], 63.to[UInt6], 0.to[UInt6])
+                      green_pixel
+                  }{(a,b) => a | b }
+                  imgOut(r,c) = Pixel16(0, acc.value, 0)
 
                 }
               } 
