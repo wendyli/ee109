@@ -78,7 +78,7 @@ object Circle extends SpatialApp {
               Foreach(0 until 100) { _ =>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
 
-                  val pixel = mux((r.to[Int64] - cirX(0).to[Int64])*(r.to[Int64] -cirX(0).to[Int64]) + (c.to[Int64] - cirY(0).to[Int64])*(c.to[Int64] -cirY(0).to[Int64]) < cirRad(0).to[Int64] * cirRad(0).to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
+                  val pixel = mux((r.to[Int64] - cirY(0).to[Int64])*(r.to[Int64] -cirY(0).to[Int64]) + (c.to[Int64] - cirX(0).to[Int64])*(c.to[Int64] -cirX(0).to[Int64]) < cirRad(0).to[Int64] * cirRad(0).to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
                   imgOut(r,c) = pixel
 
                 }
