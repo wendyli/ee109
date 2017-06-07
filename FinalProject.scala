@@ -10,6 +10,7 @@ object FinalProject extends SpatialApp {
   val Rmax = 240
   val BallCount = 10
   val cirCount = 3
+  val cirRad = 10 
 
   type Int64 = FixPt[TRUE,_64,_0]
   type Int16 = FixPt[TRUE,_16,_0]
@@ -29,11 +30,11 @@ object FinalProject extends SpatialApp {
 
     Accel{
 
-      val cirX = SRAM[Int](3)
-      val cirY = SRAM[Int](3)
-      val cirRad = SRAM[Int](3)
-      val cirVelX = SRAM[Int](3)
-      val cirVelY = SRAM[Int](3)
+      val cirX = RegFile[Int](3)
+      val cirY = RegFile[Int](3)
+      val cirRad = RegFile[Int](3)
+      val cirVelX = RegFile[Int](3)
+      val cirVelY = RegFile[Int](3)
 
       // Fill array with circle values
       Foreach(0 until cirCount){ i =>
@@ -60,8 +61,9 @@ object FinalProject extends SpatialApp {
 
               cirVelX(0) = mux( cirX(0) + cirRad(0) >= Cmax || cirX(0) - cirRad(0) <= 0.to[Int], 0 - cirVelX(0), cirVelX(0))
               cirVelY(0) = mux( cirY(0) + cirRad(0) >= Rmax || cirY(0) - cirRad(0) <= 0.to[Int], 0 - cirVelY(0), cirVelY(0))
-              cirVelX(1) = mux( cirX(1) + cirRad(1) >= Cmax || cirX(1) - cirRad(1) <= 0.to[Int], 0 - cirVelX(1), cirVelX(1))
-              cirVelY(1) = mux( cirY(1) + cirRad(1) >= Rmax || cirY(1) - cirRad(1) <= 0.to[Int], 0 - cirVelY(1), cirVelY(1))
+
+              cirVelX(0) = mux( cirX(0) + cirRad(0) >= Cmax || cirX(0) - cirRad(0) <= 0.to[Int], 0 - cirVelX(0), cirVelX(0))
+              cirVelY(0) = mux( cirY(0) + cirRad(0) >= Rmax || cirY(0) - cirRad(0) <= 0.to[Int], 0 - cirVelY(0), cirVelY(0))
 
             }
 
@@ -77,13 +79,13 @@ object FinalProject extends SpatialApp {
                         mux( cirY(0) + cirVelY(0) <= 10, 10,     
                              cirY(0) + cirVelY(0)))
 
-              cirX(1) = mux( cirX(1) + cirVelX(1) > Cmax -10, Cmax - 10, 
-                        mux( cirX(1) + cirVelX(1) <= 10, 10, 
-                             cirX(1) + cirVelX(1)))
+              cirX(0) = mux( cirX(0) + cirVelX(0) > Cmax -10, Cmax - 10, 
+                        mux( cirX(0) + cirVelX(0) <= 10, 10, 
+                             cirX(0) + cirVelX(0)))
 
-              cirY(1) = mux( cirY(1) + cirVelY(1) > Rmax -10, Rmax - 10, 
-                        mux( cirY(1) + cirVelY(1) <= 10, 10,     
-                             cirY(1) + cirVelY(1)))
+              cirY(0) = mux( cirY(0) + cirVelY(0) > Rmax -10, Rmax - 10, 
+                        mux( cirY(0) + cirVelY(0) <= 10, 10,     
+                             cirY(0) + cirVelY(0)))
             }
           
           }else if(state == 2.to[Int]){  // Draw circle 
@@ -92,8 +94,8 @@ object FinalProject extends SpatialApp {
               Foreach(0 until dwell) { _ =>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
 
-                  val pixel1 = mux((r.to[Int64] - cirX(0).to[Int64])*(r.to[Int64] -cirX(0).to[Int64]) + (c.to[Int64] - cirY(0).to[Int64])*(c.to[Int64] -cirY(0).to[Int64]) < cirRad(0).to[Int64] * cirRad(0).to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
-                  val pixel2 = mux((r.to[Int64] - cirX(1).to[Int64])*(r.to[Int64] -cirX(1).to[Int64]) + (c.to[Int64] - cirY(1).to[Int64])*(c.to[Int64] -cirY(1).to[Int64]) < cirRad(1).to[Int64] * cirRad(1).to[Int64], Pixel16(0,0,31), Pixel16(0,0,0))
+                  val pixel1 = mux((r.to[Int64] - cirY(0).to[Int64])*(r.to[Int64] -cirY(0).to[Int64]) + (c.to[Int64] - cirX(0).to[Int64])*(c.to[Int64] -cirX(0).to[Int64]) < cirRad(0).to[Int64] * cirRad(0).to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
+                  val pixel2 = mux((r.to[Int64] - cirY(1).to[Int64])*(r.to[Int64] -cirY(1).to[Int64]) + (c.to[Int64] - cirX(1).to[Int64])*(c.to[Int64] -cirX(1).to[Int64]) < cirRad(1).to[Int64] * cirRad(1).to[Int64], Pixel16(0,0,31), Pixel16(0,0,0))
                   val pixel = Pixel16(pixel1.b|pixel2.b, pixel1.g| pixel2.g, pixel1.r| pixel2.r)
                   imgOut(r, c) = pixel
 
