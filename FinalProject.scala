@@ -8,7 +8,7 @@ object FinalProject extends SpatialApp {
   override val target = DE1
   val Cmax = 320
   val Rmax = 240
-  val cirCount = 6
+  val cirCount = 5
   val cirRad = 10 
 
   type Int64 = FixPt[TRUE,_64,_0]
@@ -36,7 +36,7 @@ object FinalProject extends SpatialApp {
       val collisionType = RegFile[Int](cirCount) // 1 = ball to ball collision , 2 = border collision , 0 = no collision
       val ballCollide = RegFile[Int](cirCount) // i = no ball colliding, j = ball collided with
 
-      Sequential{
+      Sequential{ // instantiate values
 
         // Fill array with circle values     
         Foreach(0 until cirCount){ i =>
@@ -61,7 +61,7 @@ object FinalProject extends SpatialApp {
       }
 
 
-      // Generate circles
+      // Generate collision
       Stream(*) { _ => 
 
         FSM[Int]{state => state < 4}{state =>
@@ -140,15 +140,15 @@ object FinalProject extends SpatialApp {
                     val pixel3 = mux((r.to[Int64] - cirY(2).to[Int64])*(r.to[Int64] -cirY(2).to[Int64]) + (c.to[Int64] - cirX(2).to[Int64])*(c.to[Int64] -cirX(2).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(31,0,0), Pixel16(0,0,0))
                     val pixel4 = mux((r.to[Int64] - cirY(3).to[Int64])*(r.to[Int64] -cirY(3).to[Int64]) + (c.to[Int64] - cirX(3).to[Int64])*(c.to[Int64] -cirX(3).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,34,5), Pixel16(0,0,0))
                     val pixel5 = mux((r.to[Int64] - cirY(4).to[Int64])*(r.to[Int64] -cirY(4).to[Int64]) + (c.to[Int64] - cirX(4).to[Int64])*(c.to[Int64] -cirX(4).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(3,10,10), Pixel16(0,0,0))
-                    val pixel6 = mux((r.to[Int64] - cirY(5).to[Int64])*(r.to[Int64] -cirY(5).to[Int64]) + (c.to[Int64] - cirX(5).to[Int64])*(c.to[Int64] -cirX(5).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(10,6,20), Pixel16(0,0,0))
+                    //val pixel6 = mux((r.to[Int64] - cirY(5).to[Int64])*(r.to[Int64] -cirY(5).to[Int64]) + (c.to[Int64] - cirX(5).to[Int64])*(c.to[Int64] -cirX(5).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(10,6,20), Pixel16(0,0,0))
                     //val pixel7 = mux((r.to[Int64] - cirY(6).to[Int64])*(r.to[Int64] -cirY(6).to[Int64]) + (c.to[Int64] - cirX(6).to[Int64])*(c.to[Int64] -cirX(6).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(13,43,0), Pixel16(0,0,0))
                     //val pixel8 = mux((r.to[Int64] - cirY(7).to[Int64])*(r.to[Int64] -cirY(7).to[Int64]) + (c.to[Int64] - cirX(7).to[Int64])*(c.to[Int64] -cirX(7).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(24,0,25), Pixel16(0,0,0))
                     //val pixel9 = mux((r.to[Int64] - cirY(8).to[Int64])*(r.to[Int64] -cirY(8).to[Int64]) + (c.to[Int64] - cirX(8).to[Int64])*(c.to[Int64] -cirX(8).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(29,0,8), Pixel16(0,0,0))
                     //val pixel10 = mux((r.to[Int64] - cirY(9).to[Int64])*(r.to[Int64] -cirY(9).to[Int64]) + (c.to[Int64] - cirX(9).to[Int64])*(c.to[Int64] -cirX(9).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,63,5), Pixel16(0,0,0))
                
-                    val pixel = Pixel16(pixel1.b|pixel2.b|pixel3.b|pixel4.b|pixel5.b|pixel6.b, 
-                                        pixel1.g|pixel2.g|pixel3.g|pixel4.g|pixel5.g|pixel6.g, 
-                                        pixel1.r|pixel2.r|pixel3.r|pixel4.r|pixel5.r|pixel6.r)
+                    val pixel = Pixel16(pixel1.b|pixel2.b|pixel3.b|pixel4.b|pixel5.b, 
+                                        pixel1.g|pixel2.g|pixel3.g|pixel4.g|pixel5.g, 
+                                        pixel1.r|pixel2.r|pixel3.r|pixel4.r|pixel5.r)
 
                     imgOut(r, c) = pixel
                   }
