@@ -9,8 +9,7 @@ object FinalProject extends SpatialApp {
   val Cmax = 320
   val Rmax = 240
   val cirRad = 10 
-  val cirCount = 10
-  val maxCircles = 100 // maximum number of circles you can instantiate 
+  val maxCircles = 15 // maximum number of circles you can instantiate 
 
   type Int64 = FixPt[TRUE,_64,_0]
   type Int16 = FixPt[TRUE,_16,_0]
@@ -24,9 +23,9 @@ object FinalProject extends SpatialApp {
   @virtualize
   def convolveVideoStream(): Unit = {
     val imgOut = BufferedOut[Pixel16](target.VGA)
-    //val cir = ArgIn[Int]
-    //val d = args(0).to[Int]
-    //setArg(cir, d)
+    val cirCount = ArgIn[Int]
+    val d = args(0).to[Int]
+    setArg(cirCount, d)
 
     Accel{
 
@@ -64,7 +63,6 @@ object FinalProject extends SpatialApp {
             }
           }
         }
-
       }
 
       // Update frames 
@@ -108,6 +106,7 @@ object FinalProject extends SpatialApp {
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
                 Pipe{
+
                     val ball2 = ballCollide(i)
                     val x2 = cirX(ball2)
                     val y2 = cirY(ball2)
@@ -155,8 +154,8 @@ object FinalProject extends SpatialApp {
                       Pipe{
                         val pixel = mux((r.to[Int64] - cirY(i).to[Int64])*(r.to[Int64] -cirY(i).to[Int64]) + (c.to[Int64] - cirX(i).to[Int64])*(c.to[Int64] -cirX(i).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], 63.to[UInt6], 0.to[UInt6])
                         acc(0) = mux(acc(0) == 0.to[UInt6], pixel, acc(0))
-                        } 
-                      }
+                      } 
+                    }
                   }
                   imgOut(r, c) = Pixel16(0.to[UInt5], acc(0), 0.to[UInt5])
                 }
