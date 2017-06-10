@@ -8,8 +8,9 @@ object FinalProject extends SpatialApp {
   override val target = DE1
   val Cmax = 320
   val Rmax = 240
-  val cirCount = 5
   val cirRad = 10 
+  val cirCount = 10
+  val maxCircles = 100 // maximum number of circles you can instantiate 
 
   type Int64 = FixPt[TRUE,_64,_0]
   type Int16 = FixPt[TRUE,_16,_0]
@@ -23,18 +24,18 @@ object FinalProject extends SpatialApp {
   @virtualize
   def convolveVideoStream(): Unit = {
     val imgOut = BufferedOut[Pixel16](target.VGA)
-    val dwell = ArgIn[Int]
-    val d = args(0).to[Int]
-    setArg(dwell, d)
+    //val cir = ArgIn[Int]
+    //val d = args(0).to[Int]
+    //setArg(cir, d)
 
     Accel{
 
-      val cirX = SRAM[Int](cirCount) // x position 
-      val cirY = SRAM[Int](cirCount) // y position 
-      val cirVelX = SRAM[Int](cirCount) // velocity vector x comp 
-      val cirVelY = SRAM[Int](cirCount) // velocity vector y comp
-      val collisionType = SRAM[Int](cirCount) // 1 = ball to ball collision , 2 = border collision , 0 = no collision
-      val ballCollide = SRAM[Int](cirCount) // i = no ball colliding, j = ball collided with
+      val cirX = SRAM[Int](maxCircles) // x position 
+      val cirY = SRAM[Int](maxCircles) // y position 
+      val cirVelX = SRAM[Int](maxCircles) // velocity vector x comp 
+      val cirVelY = SRAM[Int](maxCircles) // velocity vector y comp
+      val collisionType = SRAM[Int](maxCircles) // 1 = ball to ball collision , 2 = border collision , 0 = no collision
+      val ballCollide = SRAM[Int](maxCircles) // i = no ball colliding, j = ball collided with
 
       Sequential{ // instantiate values
 
@@ -51,7 +52,7 @@ object FinalProject extends SpatialApp {
         }
 
         // Get rid of any overlaps among circles 
-        Foreach(0 until 2*cirCount){_=> // arbitrary number of loops, TODO: ideal would be a do while loop  
+        Foreach(0 until cirCount){_=> // arbitrary number of loops, TODO: ideal would be a do while loop  
           Sequential.Foreach(0 until cirCount, 0 until cirCount){ (i,j) => 
             Pipe{
                val sqrRad = 4*cirRad*cirRad
@@ -73,8 +74,8 @@ object FinalProject extends SpatialApp {
         
         if(state == 0.to[Int]){ // Determine collision type  
             Sequential{
-              val borderCollision = SRAM[Int](cirCount)
-              val ballCollision = SRAM[Int](cirCount)
+              val borderCollision = SRAM[Int](maxCircles)
+              val ballCollision = SRAM[Int](maxCircles)
 
               Sequential.Foreach(0 until cirCount){ i =>  // detect border collision 
                 Pipe{
@@ -143,22 +144,22 @@ object FinalProject extends SpatialApp {
           }else if(state == 3.to[Int]){  // Draw circle 
             
             Sequential{
-              Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
+              Foreach(0 until 1){_=>
+                Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
+                  val acc = SRAM[UInt6](1)
                   
-                val acc = SRAM[UInt6](1)
-                Pipe{
-                acc(0) = 0.to[UInt6]
-                    
-                Sequential.Foreach(0 until cirCount){ i=>
                   Pipe{
-                    val green_pixel = mux((r.to[Int64] - cirY(i).to[Int64])*(r.to[Int64] -cirY(i).to[Int64]) + (c.to[Int64] - cirX(i).to[Int64])*(c.to[Int64] -cirX(i).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], 63.to[UInt6], 0.to[UInt6])
-                    acc(0) = mux(acc(0) == 0.to[UInt6], green_pixel, acc(0))
-                    } 
+                    acc(0) = 0.to[UInt6]
+                        
+                    Sequential.Foreach(0 until cirCount){ i=>
+                      Pipe{
+                        val pixel = mux((r.to[Int64] - cirY(i).to[Int64])*(r.to[Int64] -cirY(i).to[Int64]) + (c.to[Int64] - cirX(i).to[Int64])*(c.to[Int64] -cirX(i).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], 63.to[UInt6], 0.to[UInt6])
+                        acc(0) = mux(acc(0) == 0.to[UInt6], pixel, acc(0))
+                        } 
+                      }
                   }
+                  imgOut(r, c) = Pixel16(0.to[UInt5], acc(0), 0.to[UInt5])
                 }
-                
-                imgOut(r, c) = Pixel16(0.to[UInt5], acc(0), 0.to[UInt5])
-
               }
             }
           }
