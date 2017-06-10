@@ -148,25 +148,17 @@ object FinalProject extends SpatialApp {
             Sequential{
               Foreach(0 until dwell){ _ =>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
-                  Pipe{
+                  val acc = Reg[UInt6](0)
 
-                    val pixel1 = mux((r.to[Int64] - cirY(0).to[Int64])*(r.to[Int64] -cirY(0).to[Int64]) + (c.to[Int64] - cirX(0).to[Int64])*(c.to[Int64] -cirX(0).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,63,0), Pixel16(0,0,0))
-                    val pixel2 = mux((r.to[Int64] - cirY(1).to[Int64])*(r.to[Int64] -cirY(1).to[Int64]) + (c.to[Int64] - cirX(1).to[Int64])*(c.to[Int64] -cirX(1).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,0,31), Pixel16(0,0,0))
-                    val pixel3 = mux((r.to[Int64] - cirY(2).to[Int64])*(r.to[Int64] -cirY(2).to[Int64]) + (c.to[Int64] - cirX(2).to[Int64])*(c.to[Int64] -cirX(2).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(31,0,0), Pixel16(0,0,0))
-                    val pixel4 = mux((r.to[Int64] - cirY(3).to[Int64])*(r.to[Int64] -cirY(3).to[Int64]) + (c.to[Int64] - cirX(3).to[Int64])*(c.to[Int64] -cirX(3).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,34,5), Pixel16(0,0,0))
-                    val pixel5 = mux((r.to[Int64] - cirY(4).to[Int64])*(r.to[Int64] -cirY(4).to[Int64]) + (c.to[Int64] - cirX(4).to[Int64])*(c.to[Int64] -cirX(4).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(3,10,10), Pixel16(0,0,0))
-                    //val pixel6 = mux((r.to[Int64] - cirY(5).to[Int64])*(r.to[Int64] -cirY(5).to[Int64]) + (c.to[Int64] - cirX(5).to[Int64])*(c.to[Int64] -cirX(5).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(10,6,20), Pixel16(0,0,0))
-                    //val pixel7 = mux((r.to[Int64] - cirY(6).to[Int64])*(r.to[Int64] -cirY(6).to[Int64]) + (c.to[Int64] - cirX(6).to[Int64])*(c.to[Int64] -cirX(6).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(13,43,0), Pixel16(0,0,0))
-                    //val pixel8 = mux((r.to[Int64] - cirY(7).to[Int64])*(r.to[Int64] -cirY(7).to[Int64]) + (c.to[Int64] - cirX(7).to[Int64])*(c.to[Int64] -cirX(7).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(24,0,25), Pixel16(0,0,0))
-                    //val pixel9 = mux((r.to[Int64] - cirY(8).to[Int64])*(r.to[Int64] -cirY(8).to[Int64]) + (c.to[Int64] - cirX(8).to[Int64])*(c.to[Int64] -cirX(8).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(29,0,8), Pixel16(0,0,0))
-                    //val pixel10 = mux((r.to[Int64] - cirY(9).to[Int64])*(r.to[Int64] -cirY(9).to[Int64]) + (c.to[Int64] - cirX(9).to[Int64])*(c.to[Int64] -cirX(9).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], Pixel16(0,63,5), Pixel16(0,0,0))
-               
-                    val pixel = Pixel16(pixel1.b|pixel2.b|pixel3.b|pixel4.b|pixel5.b, 
-                                        pixel1.g|pixel2.g|pixel3.g|pixel4.g|pixel5.g, 
-                                        pixel1.r|pixel2.r|pixel3.r|pixel4.r|pixel5.r)
+                    Sequential.Foreach(0 until cirCount){ i=>
+                      Pipe{
+                        val green_pixel = mux((r.to[Int64] - cirY(i).to[Int64])*(r.to[Int64] -cirY(i).to[Int64]) + (c.to[Int64] - cirX(i).to[Int64])*(c.to[Int64] -cirX(i).to[Int64]) < cirRad.to[Int64] * cirRad.to[Int64], 63.to[UInt6], 0.to[UInt6])
+                        acc := mux(acc.value == 0.to[UInt6], green_pixel, acc.value)
+                      } 
+                    }
 
-                    imgOut(r, c) = pixel
-                  }
+                  imgOut(r, c) = Pixel16(0.to[UInt5], acc.value, 0.to[UInt5])
+
                 }
               } 
             }
