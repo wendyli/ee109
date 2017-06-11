@@ -37,7 +37,12 @@ object FinalProject extends SpatialApp {
       val ballCollide = SRAM[Int](maxCircles) // i = no ball colliding, j = ball collided with
 
       Sequential{ // instantiate values
-
+        // LUT for values
+        val kh = LUT[Int16](3, 3)(
+           1,  0, -1,
+           2,  0, -2,
+           1,  0, -1
+        )
         // Fill array with circle values     
         Foreach(0 until cirCount){ i =>
           Pipe{
@@ -45,8 +50,8 @@ object FinalProject extends SpatialApp {
             val Y = random[UInt16](Rmax).to[Int]
             cirX(i)    = mux(X < 0, 0.to[Int], X)
             cirY(i)    = mux(Y < 0, 0.to[Int], Y)
-            cirVelX(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
-            cirVelY(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
+            cirVelX(i) = random[UInt8](2).to[Int] - 1.to[Int] // range of -1 to 1 
+            cirVelY(i) = random[UInt8](2).to[Int] - 1.to[Int] // range of -1 to 1 
           }
         }
 
@@ -107,19 +112,23 @@ object FinalProject extends SpatialApp {
               Sequential.Foreach(0 until cirCount){ i => 
                 Pipe{
 
-                    val ball2 = ballCollide(i)
-                    val x2 = cirX(ball2)
-                    val y2 = cirY(ball2)
-                    val x1 = cirX(i)
-                    val y1 = cirY(i)
+                    if(collisionType == 1 ){
+                       
+                       cirVelX(i) = mux(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int], 0 - cirVelX(i), cirVelx(i))
+                       cirVelY(i) = mux(cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 0 - cirVelY(i), cirVelx(i))
 
-                    cirVelX(i) = mux(collisionType(i) == 1 &&(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int]),0 - cirVelX(i), 
-                                 mux(collisionType(i) == 2 &&((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0)),0 - cirVelX(i),
-                                 cirVelX(i)))
-
-                    cirVelY(i) = mux(collisionType(i) == 1 && (cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int]), 0 - cirVelY(i), 
-                                 mux(collisionType(i) == 2 && ((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0)), 0 - cirVelY(i),
-                                 cirVelY(i)))
+                      }else if (collisionType == 2){
+                        val ball2 = ballCollide(i)
+                        val x2 = cirX(ball2)
+                        val y2 = cirY(ball2)
+                        val x1 = cirX(i)
+                        val y1 = cirY(i)
+                        val quadrant = mux(x1 < x2, mux(y1 < y2, 3.to[Int], 1.to[Int]), mux(y1 < y2, 4.to[Int], 2.to[Int]))
+                        
+                        cirVelX(i) = mux((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0),0 - cirVelX(i), cirVelX(i))
+                        cirVelY(i) = mux((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0), 0 - cirVelY(i), cirVelY(i))
+                      }
+ 
                 }
               }
             }
