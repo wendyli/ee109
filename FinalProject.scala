@@ -37,12 +37,7 @@ object FinalProject extends SpatialApp {
       val ballCollide = SRAM[Int](maxCircles) // i = no ball colliding, j = ball collided with
 
       Sequential{ // instantiate values
-        // LUT for values
-        val kh = LUT[Int16](3, 3)(
-           1,  0, -1,
-           2,  0, -2,
-           1,  0, -1
-        )
+
         // Fill array with circle values     
         Foreach(0 until cirCount){ i =>
           Pipe{
@@ -110,25 +105,30 @@ object FinalProject extends SpatialApp {
             // 1 = border collision , 2 = ball to ball collision , 0 = no collision
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
-                Pipe{
 
-                    if(collisionType == 1 ){
-                       
-                       cirVelX(i) = mux(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int], 0 - cirVelX(i), cirVelx(i))
-                       cirVelY(i) = mux(cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 0 - cirVelY(i), cirVelx(i))
+                if(collisionType(i) == 1 ){
+                  Pipe{
+                    cirVelX(i) = mux(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int], 0 - cirVelX(i), cirVelX(i))
+                    cirVelY(i) = mux(cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 0 - cirVelY(i), cirVelX(i))
+                  }
 
-                      }else if (collisionType == 2){
-                        val ball2 = ballCollide(i)
-                        val x2 = cirX(ball2)
-                        val y2 = cirY(ball2)
-                        val x1 = cirX(i)
-                        val y1 = cirY(i)
-                        val quadrant = mux(x1 < x2, mux(y1 < y2, 3.to[Int], 1.to[Int]), mux(y1 < y2, 4.to[Int], 2.to[Int]))
-                        
-                        cirVelX(i) = mux((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0),0 - cirVelX(i), cirVelX(i))
-                        cirVelY(i) = mux((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0), 0 - cirVelY(i), cirVelY(i))
-                      }
- 
+                }else if (collisionType(i) == 2){
+                  Pipe{
+                    val ball2 = ballCollide(i)
+                    val x2 = cirX(ball2)
+                    val y2 = cirY(ball2)
+                    val x1 = cirX(i)
+                    val y1 = cirY(i)
+                    val quadrant = mux(x1 < x2, mux(y1 < y2, 3.to[Int], 1.to[Int]), mux(y1 < y2, 4.to[Int], 2.to[Int]))
+
+                    cirVelX(i) = mux((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0),0 - cirVelX(i), cirVelX(i))
+                    cirVelY(i) = mux((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0), 0 - cirVelY(i), cirVelY(i))
+                  }
+                }else{
+                  Pipe{
+                    cirVelX(i) = cirVelX(i)
+                    cirVelY(i) = cirVelY(i)
+                  }
                 }
               }
             }
@@ -138,6 +138,7 @@ object FinalProject extends SpatialApp {
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
                 Pipe{
+
                   cirX(i) = mux( cirX(i) + cirVelX(i) > Cmax -cirRad, Cmax - cirRad, 
                             mux( cirX(i) + cirVelX(i) <= cirRad, cirRad, 
                                  cirX(i) + cirVelX(i)))
@@ -152,7 +153,7 @@ object FinalProject extends SpatialApp {
           }else if(state == 3.to[Int]){  // Draw circle 
             
             Sequential{
-              Foreach(0 until 1){_=>
+              Foreach(0 until 3){_=>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
                   val acc = SRAM[UInt6](1)
                   
