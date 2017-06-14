@@ -48,7 +48,7 @@ object Circle extends SpatialApp {
             cirY(i)    = mux(Y < 0, 0.to[Int], Y)
             cirVelX(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
             cirVelY(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3
-            cirRad(i) = random[UInt8](10).to[Int] + 5.to[Int] // 5 to 15
+            cirRad(i) = random[UInt8](9).to[Int] + 3.to[Int] // 3 to 12
           }
         }
 
@@ -114,14 +114,18 @@ object Circle extends SpatialApp {
                     val y2 = cirY(ball2)
                     val x1 = cirX(i)
                     val y1 = cirY(i)
+                    val velx2 = cirVelX(ball2)
+                    val vely2 = cirVelY(ball2)
 
                     cirVelX(i) = mux(collisionType(i) == 1 &&(cirX(i) + cirRad(i) >= Cmax || cirX(i) - cirRad(i) <= 0.to[Int]),0 - cirVelX(i), 
                                  mux(collisionType(i) == 2 &&((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0)),0 - cirVelX(i),
-                                 cirVelX(i)))
+                                 mux(collisionType(i) == 2 && cirVelX(i) == 0, velx2,
+                                 cirVelX(i))))
 
                     cirVelY(i) = mux(collisionType(i) == 1 && (cirY(i) + cirRad(i) >= Rmax || cirY(i) - cirRad(i) <= 0.to[Int]), 0 - cirVelY(i), 
                                  mux(collisionType(i) == 2 && ((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0)), 0 - cirVelY(i),
-                                 cirVelY(i)))
+                                 mux(collisionType(i) == 2 && cirVelY(i) == 0, vely2,
+                                 cirVelY(i))))
                 }
               }
             }
