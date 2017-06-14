@@ -9,6 +9,7 @@ object FinalProject extends SpatialApp {
   val Cmax = 320
   val Rmax = 240
   val cirRad = 10 
+  val cirCount = 10
   val maxCircles = 15 // maximum number of circles you can instantiate 
 
   type Int64 = FixPt[TRUE,_64,_0]
@@ -23,9 +24,9 @@ object FinalProject extends SpatialApp {
   @virtualize
   def convolveVideoStream(): Unit = {
     val imgOut = BufferedOut[Pixel16](target.VGA)
-    val cirCount = ArgIn[Int]
+    val dwell = ArgIn[Int]
     val d = args(0).to[Int]
-    setArg(cirCount, d)
+    setArg(dwell, d)
 
     Accel{
 
@@ -45,8 +46,8 @@ object FinalProject extends SpatialApp {
             val Y = random[UInt16](Rmax).to[Int]
             cirX(i)    = mux(X < 0, 0.to[Int], X)
             cirY(i)    = mux(Y < 0, 0.to[Int], Y)
-            cirVelX(i) = random[UInt8](2).to[Int] - 1.to[Int] // range of -1 to 1 
-            cirVelY(i) = random[UInt8](2).to[Int] - 1.to[Int] // range of -1 to 1 
+            cirVelX(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
+            cirVelY(i) = random[UInt8](3).to[Int] - 6.to[Int] // range of -3 to 3 
           }
         }
 
@@ -105,40 +106,13 @@ object FinalProject extends SpatialApp {
             // 1 = border collision , 2 = ball to ball collision , 0 = no collision
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
-                 Pipe{
+                Pipe{
 
                     val ball2 = ballCollide(i)
                     val x2 = cirX(ball2)
                     val y2 = cirY(ball2)
                     val x1 = cirX(i)
                     val y1 = cirY(i)
-                    val velx1 = cirVelX(i)
-                    val velx2 = cirVelX(ball2)
-                    val vely1 = cirVelY(i)
-                    val vely2 = cirVelY(ball2)
-                    
-                    // resolve ball to ball collision
-                    /*
-                    val dx = x1 - x2;
-                    val dy = y1 - y2;
-                    val  collisionision_angle = mux(dx == 0, 90 ,
-                                                mux(dy == 0, 90, 
-                                                mux(dy < 0 , 
-                                                mux(dx <0 , 45, -45), 
-                                                mux(dx < 0, -45, 45)))) ;
-                    val  magnitude_1 = Mag(velx1, vely1)
-                    val  magnitude_2 = Mag(velx2, vely2)
-                    val  direction_1 = atan(vely1, velx1)
-                    val  direction_2 = atan(vely2, velx2)
-                    val new_xspeed_1 = magnitude_1* cos(direction_1-collisionision_angle)
-                    val new_yspeed_1 = magnitude_1* sin(direction_1-collisionision_angle)
-                    val new_xspeed_2 = magnitude_2* cos(direction_2-collisionision_angle)
-                    val new_yspeed_2 = magnitude_2* sin(direction_2-collisionision_angle)
-                    val final_velx1 = cos(collisionision_angle)*new_xspeed_1+ cos(collisionision_angle+ 90)*new_yspeed_1;
-                    val final_vely1 = sin(collisionision_angle)*new_xspeed_1+ sin(collisionision_angle+ 90)*new_yspeed_1;
-                    val final_velx2 = cos(collisionision_angle)*new_xspeed_2+ cos(collisionision_angle+ 90)*new_yspeed_2;
-                    val final_vely2 = sin(collisionision_angle)*new_xspeed_2+ sin(collisionision_angle+ 90)*new_yspeed_2;
-                    */
 
                     cirVelX(i) = mux(collisionType(i) == 1 &&(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int]),0 - cirVelX(i), 
                                  mux(collisionType(i) == 2 &&((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0)),0 - cirVelX(i),
@@ -148,7 +122,6 @@ object FinalProject extends SpatialApp {
                                  mux(collisionType(i) == 2 && ((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0)), 0 - cirVelY(i),
                                  cirVelY(i)))
                 }
-                
               }
             }
           
@@ -157,7 +130,6 @@ object FinalProject extends SpatialApp {
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
                 Pipe{
-
                   cirX(i) = mux( cirX(i) + cirVelX(i) > Cmax -cirRad, Cmax - cirRad, 
                             mux( cirX(i) + cirVelX(i) <= cirRad, cirRad, 
                                  cirX(i) + cirVelX(i)))
@@ -172,7 +144,7 @@ object FinalProject extends SpatialApp {
           }else if(state == 3.to[Int]){  // Draw circle 
             
             Sequential{
-              //Foreach(0 until 1){_=>
+              Foreach(0 until dwell){_=>
                 Foreach(0 until Rmax, 0 until Cmax){ (r, c) =>
                   val acc = SRAM[UInt6](1)
                   
@@ -188,7 +160,7 @@ object FinalProject extends SpatialApp {
                   }
                   imgOut(r, c) = Pixel16(0.to[UInt5], acc(0), 0.to[UInt5])
                 }
-              //}
+              }
             }
           }
         }{state => mux(state == 3.to[Int], 0.to[Int], state + 1)}
