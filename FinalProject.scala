@@ -8,8 +8,8 @@ object FinalProject extends SpatialApp {
   override val target = DE1
   val Cmax = 320
   val Rmax = 240
-  val cirRad = 10 
   val cirCount = 10
+  val cirRad = 10 
   val maxCircles = 15 // maximum number of circles you can instantiate 
 
   type Int64 = FixPt[TRUE,_64,_0]
@@ -107,20 +107,28 @@ object FinalProject extends SpatialApp {
             Sequential{
               Sequential.Foreach(0 until cirCount){ i => 
                 Pipe{
-
                     val ball2 = ballCollide(i)
                     val x2 = cirX(ball2)
                     val y2 = cirY(ball2)
                     val x1 = cirX(i)
                     val y1 = cirY(i)
 
-                    cirVelX(i) = mux(collisionType(i) == 1 &&(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int]),0 - cirVelX(i), 
-                                 mux(collisionType(i) == 2 &&((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0)),0 - cirVelX(i),
-                                 cirVelX(i)))
-
-                    cirVelY(i) = mux(collisionType(i) == 1 && (cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int]), 0 - cirVelY(i), 
-                                 mux(collisionType(i) == 2 && ((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0)), 0 - cirVelY(i),
-                                 cirVelY(i)))
+                    if(collisionType(i) == 1){
+                      Pipe{
+                        cirVelX(i) = mux(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int],0 - cirVelX(i), cirVelX(i))
+                        cirVelY(i) = mux(cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 0 - cirVelY(i), cirVelY(i))
+                      }
+                    }else if(collisionType(i) == 2){
+                      Pipe{
+                        cirVelX(i) = mux((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0),0 - cirVelX(i), cirVelX(i)))
+                        cirVelY(i) = mux((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0), 0 - cirVelY(i), cirVelY(i))
+                      }
+                    }else{
+                      Pipe{
+                        cirVelX(i) = cirVelX(i)
+                        cirVelY(i) = cirVelY(i)
+                      }
+                    }
                 }
               }
             }
