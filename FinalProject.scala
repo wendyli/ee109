@@ -30,10 +30,12 @@ object FinalProject extends SpatialApp {
 
     Accel{
 
+      // ball values
       val cirX = SRAM[Int](maxCircles) // x position 
       val cirY = SRAM[Int](maxCircles) // y position 
       val cirVelX = SRAM[Int](maxCircles) // velocity vector x comp 
       val cirVelY = SRAM[Int](maxCircles) // velocity vector y comp
+      // collision variables 
       val collisionType = SRAM[Int](maxCircles) // 1 = ball to ball collision , 2 = border collision , 0 = no collision
       val ballCollide = SRAM[Int](maxCircles) // i = no ball colliding, j = ball collided with
       val ballCollideVelX = SRAM[Int](maxCircles)
@@ -83,6 +85,8 @@ object FinalProject extends SpatialApp {
                   borderCollision(i) = mux(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int] || cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int], 1.to[Int], 0.to[Int])
                   ballCollide(i) = i.to[Int]
                   ballCollision(i) = 0.to[Int]
+                  ballCollideVelX(i) = 0.to[Int]
+                  ballCollideVelY(i) = 0.to[Int]
                 }
               }
 
@@ -120,11 +124,13 @@ object FinalProject extends SpatialApp {
                     val y1 = cirY(i)
 
                     cirVelX(i) = mux(collisionType(i) == 1 &&(cirX(i) + cirRad >= Cmax || cirX(i) - cirRad <= 0.to[Int]),0 - cirVelX(i), 
-                                 mux(collisionType(i) == 2, ballCollideVelX(i),
+                                 mux(collisionType(i) == 2 &&((x1 < x2 && cirVelX(i) > 0) || (x1 > x2 && cirVelX(i) < 0)),0 - cirVelX(i),
+                                 //mux(collisionType(i) == 2 && cirVelX(i) == 0, ballCollideVelX(i),
                                  cirVelX(i)))
 
                     cirVelY(i) = mux(collisionType(i) == 1 && (cirY(i) + cirRad >= Rmax || cirY(i) - cirRad <= 0.to[Int]), 0 - cirVelY(i), 
-                                 mux(collisionType(i) == 2, ballCollideVelY(i),
+                                 mux(collisionType(i) == 2 && ((y1 < y2 && cirVelY(i) > 0) || (y1 > y2 && cirVelY(i) < 0)), 0 - cirVelY(i),
+                                 //mux(collisionType(i) == 2 && cirVelY(i) == 0, ballCollideVelY(i),
                                  cirVelY(i)))
                 }
               }
